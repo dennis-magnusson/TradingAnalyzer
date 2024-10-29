@@ -6,3 +6,4 @@ data_producer/**/target
 
 .metals
 .vscode
+.scalafmt.conf
