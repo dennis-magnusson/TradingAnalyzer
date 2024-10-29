@@ -12,7 +12,11 @@ object DataGenerator extends App {
 
   while (row.isDefined) {
     val values = row.get
+
+    // TODO: Actually write the event to Kafka
+
     println(values.mkString(","))
+
     Thread.sleep(500)
     row = reader.readNext()
   }
