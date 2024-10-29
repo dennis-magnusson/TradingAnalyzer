@@ -1,5 +1,5 @@
 services:
-    data_produer:
+    data_producer:
         image: data_producer
         depends_on:
             - kafka
