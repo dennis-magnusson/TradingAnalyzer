@@ -1,0 +1,14 @@
+services:
+    data_produer:
+        image: data_producer
+        depends_on:
+            - kafka
+        build:
+            context: data_producer
+            dockerfile: Dockerfile
+        volumes:
+            - ./data:/data
+    kafka:
+        image: apache/kafka:3.8.0
+        ports:
+            - "9092:9092"

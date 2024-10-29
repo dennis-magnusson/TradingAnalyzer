@@ -1,0 +1,8 @@
+**/*/.DS_Store
+
+data
+data_producer/target
+data_producer/**/target
+
+.metals
+.vscode
