@@ -1,5 +1,11 @@
 services:
-    data_producer:
+    kafka:
+        image: apache/kafka:3.8.1
+        ports:
+            - "9092:9092"
+        expose:
+            - "9092"
+    data_producer: # TODO: Only start after kafka is ready to accept connections
         image: data_producer
         depends_on:
             - kafka
@@ -8,7 +14,3 @@ services:
             dockerfile: Dockerfile
         volumes:
             - ./data:/data
-    kafka:
-        image: apache/kafka:3.8.0
-        ports:
-            - "9092:9092"
