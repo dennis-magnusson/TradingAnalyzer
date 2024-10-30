@@ -1,4 +1,4 @@
-FROM openjdk:8 as buildingstage
+FROM openjdk:8 AS buildingstage
 ARG SBT_VERSION=1.10.2
 
 # install sbt 
