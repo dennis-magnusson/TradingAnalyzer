@@ -53,7 +53,8 @@ tar -xzf kafka_2.13-3.8.1.tgz
 cd kafka_2.13-3.8.1
 bin/kafka-console-consumer.sh --topic trade-events --bootstrap-server localhost:9092 --from-beginning
 ```
-
+## Spark
+you can visit spark master ui in this [link](http://localhost:8080/). You can see the registered workers and applications here. 
 ## Liscense
 
 This project is liscensed under the GPL-3.0 license.
