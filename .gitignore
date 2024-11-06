@@ -7,3 +7,6 @@ data_producer/**/target
 .metals
 .vscode
 .scalafmt.conf
+
+influxdb/project
+influxdb/target
