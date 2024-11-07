@@ -14,12 +14,17 @@ services:
             KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
             KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
             KAFKA_NUM_PARTITIONS: 3
+        healthcheck:
+            test: /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1
+            interval: 2s
+            start_interval: 2s
         networks:
             - kafka-network
-    data_producer: # TODO: Only start after kafka is ready to accept connections
+    data_producer:
         image: data_producer
         depends_on:
-            - kafka
+            kafka:
+                condition: service_healthy
         build:
             context: data_producer
             dockerfile: Dockerfile
