@@ -18,11 +18,6 @@ object DataGenerator extends App {
   val kafkaServer =
     "kafka:9092"
 
-  val INITIAL_DELAY =
-    5000 // TODO: Remove this behaviour and instead delay the start of the container itself
-
-  Thread.sleep(INITIAL_DELAY)
-
   val adminClientProps = new Properties()
   adminClientProps.put(
     ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
