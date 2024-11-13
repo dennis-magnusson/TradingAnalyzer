@@ -12,8 +12,16 @@ object DataGenerator extends App {
 
   val INTERVAL_MS =
     500 // TODO: Make this dynamically configurable or simulate timestamps
-  val CSV_PATH =
-    "/data/debs2022-gc-trading-day-08-11-21.csv" // TODO: What about other days' data?
+
+  val DEFAULT_CSV_FILE =
+    "/data/debs2022-gc-trading-day-08-11-21--dropped--sorted.csv"
+
+  val csv_path =
+    if (args.nonEmpty) args(0) else DEFAULT_CSV_FILE
+    else if (!(new File(CSV_PATH)).exists()) {
+      println("Source data file not found: " + CSV_PATH)
+      System.exit(1)
+    }
 
   val kafkaServer =
     "kafka:9092"
