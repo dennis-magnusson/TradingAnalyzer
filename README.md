@@ -37,6 +37,30 @@ tar -xzf kafka_2.13-3.8.1.tgz
 cd kafka_2.13-3.8.1
 bin/kafka-console-consumer.sh --topic trade-events --bootstrap-server localhost:9092 --from-beginning
 ```
+
+4. Connecting to kafka in spark
+
+   a. Using spark shell:
+      execute this command:
+      ```
+      docker exec -it spark-master bash
+      /spark/bin/spark-shell --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
+      ```
+      you are now in the spark interactive shell 
+      connect to kafka using this command:
+      ```
+      val df = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "kafka:9092").option("subscribe", "trade-events").option("startingOffsets","earliest").load()
+
+      // what ever logic you want here:
+
+      // printing dataframe in console
+      val query = df.writeStream
+      .outputMode("append")
+      .format("console")
+      .start()
+
+      ```
+      
 ## Spark
 you can visit spark master ui in this [link](http://localhost:8080/). You can see the registered workers and applications here. 
 ## Liscense
