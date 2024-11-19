@@ -18,6 +18,7 @@ services:
             test: /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1
             interval: 2s
             start_interval: 2s
+            retries: 10
         networks:
             - kafka-network
     data_producer:
@@ -28,6 +29,8 @@ services:
         build:
             context: data_producer
             dockerfile: Dockerfile
+        environment:
+            INTERVAL_MS: 200
         volumes:
             - ./data:/data
         networks:

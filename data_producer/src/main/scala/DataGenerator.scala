@@ -10,18 +10,20 @@ import java.util.{Properties, Collections}
 
 object DataGenerator extends App {
 
-  val INTERVAL_MS =
-    500 // TODO: Make this dynamically configurable or simulate timestamps
+  val intervalMs = sys.env.getOrElse("INTERVAL_MS", "500").toInt
+  val csvPath =
+    sys.env.getOrElse("CSV_PATH", "/data/debs2022-gc-trading-day-08-11-21.csv")
+  val topicName = sys.env.getOrElse("TOPIC_NAME", "trade-events")
+  val partitions = sys.env.getOrElse("TOPIC_PARTITIONS", "1").toInt
+  val replicationFactor: Short =
+    sys.env.getOrElse("TOPIC_REPLICATION_FACTOR", "1").toShort
 
-  val DEFAULT_CSV_FILE =
-    "/data/debs2022-gc-trading-day-08-11-21--dropped--sorted.csv"
+  if (!(new File(csvPath)).exists()) {
+    println("Source data file not found: " + csvPath)
+    System.exit(1)
+  }
 
-  val csv_path =
-    if (args.nonEmpty) args(0) else DEFAULT_CSV_FILE
-    else if (!(new File(CSV_PATH)).exists()) {
-      println("Source data file not found: " + CSV_PATH)
-      System.exit(1)
-    }
+  println("Using csv file: " + csvPath)
 
   val kafkaServer =
     "kafka:9092"
@@ -33,9 +35,6 @@ object DataGenerator extends App {
   )
   val adminClient = AdminClient.create(adminClientProps)
 
-  val topicName = "trade-events"
-  val partitions = 1
-  val replicationFactor: Short = 1
   val topic = new NewTopic(topicName, partitions, replicationFactor)
   val topicCollection = Collections.singleton(topic)
 
@@ -64,38 +63,37 @@ object DataGenerator extends App {
 
   val producer = new KafkaProducer[String, String](producerProps)
 
-  val file = new File(CSV_PATH)
+  val file = new File(csvPath)
   val reader = CSVReader.open(file)
-
-  println("Successfully opened CSV file: " + CSV_PATH)
 
   var row = reader.readNext()
 
   while (row.isDefined) {
     val values = row.get
+    val isTickRow = values.length == 40 && !values(21).trim.isEmpty
+    if (isTickRow) {
+      // TODO: Check that critical values are not empty
+      val record =
+        new ProducerRecord[String, String](topicName, values.mkString(","))
+      try {
+        val metadata = producer.send(record).get()
+      } catch {
+        case e: Exception =>
+          println(
+            "Failed to send record: " + values.mkString(
+              ","
+            ) + "; Exception: " + e.getMessage
+          )
+      }
 
-    val record =
-      new ProducerRecord[String, String](topicName, values.mkString(","))
-    try {
-      val metadata = producer.send(record).get()
-      println(
-        "Sent record: " + values.mkString(",") + " to topic: " + metadata
-          .topic()
-      )
-    } catch {
-      case e: Exception =>
-        println(
-          "Failed to send record: " + values.mkString(
-            ","
-          ) + "; Exception: " + e.getMessage
-        )
+      Thread.sleep(intervalMs)
+
     }
 
-    Thread.sleep(INTERVAL_MS)
     row = reader.readNext()
   }
 
   reader.close()
 
-  println("Reached end of file: " + CSV_PATH)
+  println("Reached end of file: " + csvPath)
 }
