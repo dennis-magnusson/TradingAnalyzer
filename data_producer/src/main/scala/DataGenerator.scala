@@ -69,12 +69,22 @@ object DataGenerator extends App {
   var row = reader.readNext()
 
   while (row.isDefined) {
-    val values = row.get
-    val isTickRow = values.length == 40 && !values(21).trim.isEmpty
-    if (isTickRow) {
-      // TODO: Check that critical values are not empty
+    val values: List[String] = row.get
+    val isTickRow = values.length == 40 &&
+      !values(21).trim.isEmpty && {
+        try {
+          values(21).trim.toFloat
+          true
+        } catch {
+          case _: NumberFormatException => false
+        }
+      }
+    if (isTickRow && values(21).trim.toFloat != 0.0) {
+      val selectedValues =
+        List(values(0), values(1), values(21), values(23), values(26))
+      val recordData = selectedValues.mkString(",")
       val record =
-        new ProducerRecord[String, String](topicName, values.mkString(","))
+        new ProducerRecord[String, String](topicName, recordData)
       try {
         val metadata = producer.send(record).get()
       } catch {
