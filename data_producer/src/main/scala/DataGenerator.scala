@@ -11,6 +11,7 @@ import java.util.{Properties, Collections}
 
 object DataGenerator extends App {
 
+  val speedFactor: Int = sys.env.getOrElse("SPEED_FACTOR", "1.0").toInt
   val csvPath: String =
     sys.env.getOrElse("CSV_PATH", "/data/debs2022-gc-trading-day-08-11-21.csv")
   val topicName: String = sys.env.getOrElse("TOPIC_NAME", "trade-events")
@@ -97,7 +98,7 @@ object DataGenerator extends App {
 
         println(s"Sending record: $recordData Interval: $intervalMs ms")
         sendRecordToKafka(producer, topicName, recordData)
-        Thread.sleep(intervalMs)
+        Thread.sleep(intervalMs / speedFactor)
       }
     }
 

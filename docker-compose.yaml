@@ -29,6 +29,8 @@ services:
         build:
             context: data_producer
             dockerfile: Dockerfile
+        environment:
+            SPEED_FACTOR: 5
         volumes:
             - ./data:/data
         networks:
