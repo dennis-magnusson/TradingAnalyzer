@@ -139,7 +139,9 @@ object DataGenerator extends App {
 
   def formatRecordData(values: Seq[String]): String = {
     // ID, SecType, Last, Trading time, Trading date
-    Seq(values(0), values(1), values(21), values(23), values(26)).mkString(",")
+    val timestamp = Instant.now.toEpochMilli
+    Seq(values(0), values(1), values(21), values(23), values(26), timestamp)
+      .mkString(",")
   }
 
   def parseTradingTime(time: String): Long = {
@@ -158,15 +160,17 @@ object DataGenerator extends App {
   def sendRecordToKafka(
       producer: KafkaProducer[String, String],
       topicName: String,
-      data: String
+      key: String,
+      value: String
   ): Unit = {
-    val record = new ProducerRecord[String, String](topicName, data)
+    val record = new ProducerRecord[String, String](topicName, key, value)
     try {
-      // TODO: Key value ?
       producer.send(record).get()
     } catch {
       case e: Exception =>
-        println(s"Failed to send record: $data; Exception: ${e.getMessage}")
+        println(
+          s"Failed to send record; key: <$key> value: <$value>; Exception: ${e.getMessage}"
+        )
     }
   }
 }
