@@ -1,5 +1,8 @@
 import java.io.File
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.util.{Properties, Collections}
+
 import com.github.tototoshi.csv._
 import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
 import org.apache.kafka.clients.producer.{
@@ -7,7 +10,6 @@ import org.apache.kafka.clients.producer.{
   ProducerConfig,
   ProducerRecord
 }
-import java.util.{Properties, Collections}
 
 object DataGenerator extends App {
 
@@ -96,8 +98,12 @@ object DataGenerator extends App {
 
         previousTradingTime = currentTradingTime
 
-        println(s"Sending record: $recordData Interval: $intervalMs ms")
-        sendRecordToKafka(producer, topicName, recordData)
+        val key = values(0)
+        val value = recordData
+        sendRecordToKafka(producer, topicName, key, value)
+        println(
+          s"Sent record with key: <$key>, value: <$value>, sleeping for interval: $intervalMs ms"
+        )
         Thread.sleep(intervalMs / speedFactor)
       }
     }
@@ -123,7 +129,9 @@ object DataGenerator extends App {
 
   def formatRecordData(values: Seq[String]): String = {
     // ID, SecType, Last, Trading time, Trading date
-    Seq(values(0), values(1), values(21), values(23), values(26)).mkString(",")
+    val timestamp = Instant.now.toEpochMilli
+    Seq(values(0), values(1), values(21), values(23), values(26), timestamp)
+      .mkString(",")
   }
 
   def parseTradingTime(time: String): Long = {
@@ -142,15 +150,17 @@ object DataGenerator extends App {
   def sendRecordToKafka(
       producer: KafkaProducer[String, String],
       topicName: String,
-      data: String
+      key: String,
+      value: String
   ): Unit = {
-    val record = new ProducerRecord[String, String](topicName, data)
+    val record = new ProducerRecord[String, String](topicName, key, value)
     try {
-      // TODO: Key value ?
       producer.send(record).get()
     } catch {
       case e: Exception =>
-        println(s"Failed to send record: $data; Exception: ${e.getMessage}")
+        println(
+          s"Failed to send record; key: <$key> value: <$value>; Exception: ${e.getMessage}"
+        )
     }
   }
 }
