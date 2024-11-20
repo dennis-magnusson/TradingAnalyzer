@@ -31,6 +31,7 @@ services:
             dockerfile: Dockerfile
         environment:
             SPEED_FACTOR: 5
+            TOPIC_PARTITIONS: 1
         volumes:
             - ./data:/data
         networks:
