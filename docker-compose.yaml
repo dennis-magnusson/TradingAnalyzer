@@ -21,19 +21,28 @@ services:
             retries: 10
         networks:
             - kafka-network
-    data_producer:
-        image: data_producer
+
+    kafka-init-topics:
+        image: apache/kafka:3.8.1
         depends_on:
             kafka:
                 condition: service_healthy
+        entrypoint: ["/bin/sh", "-c"]
+        command: |
+            /opt/kafka/bin/kafka-topics.sh --create --topic trade-events --partitions 1 --replication-factor 1 --bootstrap-server kafka:9092
+            /opt/kafka/bin/kafka-topics.sh --create --topic topic1 --partitions 1 --replication-factor 1 --bootstrap-server kafka:9092
+
+    data_producer:
+        image: data_producer
+        depends_on:
+            - kafka-init-topics
         build:
             context: data_producer
             dockerfile: Dockerfile
         environment:
             SPEED_FACTOR: 5
-            TOPIC_PARTITIONS: 1
             CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
-            # PRINT_SENT_RECORDS: false
+            PRINT_SENT_RECORDS: true
         volumes:
             - ./data:/data
         networks:
@@ -50,7 +59,6 @@ services:
             - ./data:/data
         networks:
             - kafka-network
-    
 
     spark-master:
         image: bde2020/spark-master:3.3.0-hadoop3.3
@@ -93,8 +101,7 @@ services:
         environment:
             - TOPIC_NAME=topic1
         depends_on:
-            kafka:
-                condition: service_healthy
+            - kafka-init-topics
         build:
             context: latency_logger
             dockerfile: Dockerfile
