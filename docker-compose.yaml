@@ -32,11 +32,25 @@ services:
         environment:
             SPEED_FACTOR: 5
             TOPIC_PARTITIONS: 1
+            CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
             # PRINT_SENT_RECORDS: false
         volumes:
             - ./data:/data
         networks:
             - kafka-network
+    data_analyzer:
+        image: data_analyzer
+        depends_on:
+            - spark-master
+            - data_producer
+        build:
+            context: data_analyzer
+            dockerfile: Dockerfile
+        volumes:
+            - ./data:/data
+        networks:
+            - kafka-network
+    
 
     spark-master:
         image: bde2020/spark-master:3.3.0-hadoop3.3
