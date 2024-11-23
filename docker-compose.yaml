@@ -86,11 +86,15 @@ services:
     influxdb:
         image: influxdb:2.7
         environment:
-            - INFLUXDB_DB=mydb # Initial database name
-            - INFLUXDB_ADMIN_USER=admin # Admin username
-            - INFLUXDB_ADMIN_PASSWORD=admin_password # Admin password
+            DOCKER_INFLUXDB_INIT_MODE: setup
+            DOCKER_INFLUXDB_INIT_USERNAME: admin
+            DOCKER_INFLUXDB_INIT_PASSWORD: admin-password
+            DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "1dd585b8fd63b23323387dae193220381521cdee5f1ea50086b091deae1c2c44"
+            DOCKER_INFLUXDB_INIT_ORG: docs
+            DOCKER_INFLUXDB_INIT_BUCKET: home
+
         ports:
-            - "8086:8086" # InfluxDB default port
+            - "8086:8086"                       # InfluxDB default port
         volumes:
             - influxdb-storage:/var/lib/influxdb
         networks:
