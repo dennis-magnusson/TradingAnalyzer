@@ -30,7 +30,7 @@ services:
             context: data_producer
             dockerfile: Dockerfile
         environment:
-            INTERVAL_MS: 200
+            SPEED_FACTOR: 5
         volumes:
             - ./data:/data
         networks:
