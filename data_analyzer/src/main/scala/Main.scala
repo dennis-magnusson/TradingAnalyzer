@@ -17,7 +17,7 @@ val cleandf = df.selectExpr("cast(key as string) key", "cast(value as string) va
 
 val output = cleandf.select(col("key"), concat($"trading_value", lit(","), $"tradingtime", lit(","), $"timestamp").as("value"))
 
-// output.writeStream.format("kafka").option("checkpointLocation" , "./spark").option("kafka.bootstrap.servers", "kafka:9092").option("topic", "topic1").start()
+output.writeStream.format("kafka").option("checkpointLocation" , "./spark").option("kafka.bootstrap.servers", "kafka:9092").option("topic", "topic1").start().awaitTermination()
 
 
 
