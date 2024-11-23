@@ -26,7 +26,7 @@ object DataGenerator extends App {
   val marketOpenTime = "07:00:00.000"
 
   validateCsvPath(csvPath)
-  createKafkaTopic(topicName, partitions, replicationFactor, kafkaServer)
+
   val producer = createKafkaProducer(kafkaServer)
   processCsvAndSendData(
     csvPath,
@@ -45,30 +45,6 @@ object DataGenerator extends App {
       System.exit(1)
     }
     println(s"Using CSV file: $path")
-  }
-
-  def createKafkaTopic(
-      topicName: String,
-      partitions: Int,
-      replicationFactor: Short,
-      kafkaServer: String
-  ): Unit = {
-    val adminClientProps = new Properties()
-    adminClientProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServer)
-    val adminClient = AdminClient.create(adminClientProps)
-
-    try {
-      val topic = new NewTopic(topicName, partitions, replicationFactor)
-      adminClient.createTopics(Collections.singleton(topic))
-      println(s"Successfully created topic: $topicName")
-    } catch {
-      case e: Exception =>
-        println(
-          s"Failed to create topic: $topicName; Exception: ${e.getMessage}"
-        )
-    } finally {
-      adminClient.close()
-    }
   }
 
   def createKafkaProducer(
