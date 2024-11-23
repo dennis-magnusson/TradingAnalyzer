@@ -142,9 +142,6 @@ object DataGenerator extends App {
     val timestamp = Instant.now.toEpochMilli
     Seq(values(0), values(1), values(21), values(23), values(26), timestamp)
       .mkString(",")
-    val timestamp = Instant.now.toEpochMilli
-    Seq(values(0), values(1), values(21), values(23), values(26), timestamp)
-      .mkString(",")
   }
 
   def parseTradingTime(time: String): Long = {
@@ -165,10 +162,7 @@ object DataGenerator extends App {
       topicName: String,
       key: String,
       value: String
-      key: String,
-      value: String
   ): Unit = {
-    val record = new ProducerRecord[String, String](topicName, key, value)
     val record = new ProducerRecord[String, String](topicName, key, value)
     try {
       producer.send(record).get()
