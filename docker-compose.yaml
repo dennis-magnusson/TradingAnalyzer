@@ -32,6 +32,7 @@ services:
         environment:
             SPEED_FACTOR: 5
             TOPIC_PARTITIONS: 1
+            # PRINT_SENT_RECORDS: false
         volumes:
             - ./data:/data
         networks:
@@ -70,6 +71,21 @@ services:
             - "8086:8086" # InfluxDB default port
         volumes:
             - influxdb-storage:/var/lib/influxdb
+        networks:
+            - kafka-network
+
+    latencylogger:
+        image: latency_logger
+        environment:
+            - TOPIC_NAME=topic1
+        depends_on:
+            kafka:
+                condition: service_healthy
+        build:
+            context: latency_logger
+            dockerfile: Dockerfile
+        volumes:
+            - ./logs:/logs
         networks:
             - kafka-network
 
