@@ -27,10 +27,21 @@ services:
         depends_on:
             kafka:
                 condition: service_healthy
+        environment:
+            BOOTSTRAP_SERVER: kafka:9092
+            TRADE_EVENTS_TOPIC_NAME: trade-events
+            TRADE_EVENTS_PARTITIONS: 1
+            TRADE_EVENTS_REPLICATION_FACTOR: 1
+            LATENCY_TOPIC_NAME: latency-topic
+            LATENCY_PARTITIONS: 1
+            LATENCY_REPLICATION_FACTOR: 1
+        volumes:
+            - ./kafka-init-topics.sh:/kafka-init-topics.sh
         entrypoint: ["/bin/sh", "-c"]
         command: |
-            /opt/kafka/bin/kafka-topics.sh --create --topic trade-events --partitions 1 --replication-factor 1 --bootstrap-server kafka:9092
-            /opt/kafka/bin/kafka-topics.sh --create --topic topic1 --partitions 1 --replication-factor 1 --bootstrap-server kafka:9092
+            /kafka-init-topics.sh
+        networks:
+            - kafka-network
 
     data_producer:
         image: data_producer
@@ -94,7 +105,7 @@ services:
             DOCKER_INFLUXDB_INIT_BUCKET: home
 
         ports:
-            - "8086:8086"                       # InfluxDB default port
+            - "8086:8086" # InfluxDB default port
         volumes:
             - influxdb-storage:/var/lib/influxdb
         networks:
