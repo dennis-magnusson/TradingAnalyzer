@@ -5,7 +5,7 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig}
 
 object LatencyLogger extends App {
-  val topicName: String = sys.env.getOrElse("TOPIC_NAME", "topic1")
+  val topicName: String = sys.env.getOrElse("TOPIC_NAME", "timestamps")
   val pollingInterval: Int = sys.env.getOrElse("POLLING_INTERVAL", "5000").toInt
   val kafkaServer: String = "kafka:9092"
 

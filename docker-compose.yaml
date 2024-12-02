@@ -32,7 +32,7 @@ services:
             TRADE_EVENTS_TOPIC_NAME: trade-events
             TRADE_EVENTS_PARTITIONS: 1
             TRADE_EVENTS_REPLICATION_FACTOR: 1
-            LATENCY_TOPIC_NAME: latency-topic
+            LATENCY_TOPIC_NAME: timestamps
             LATENCY_PARTITIONS: 1
             LATENCY_REPLICATION_FACTOR: 1
         volumes:
@@ -46,7 +46,8 @@ services:
     data_producer:
         image: data_producer
         depends_on:
-            - kafka-init-topics
+            kafka-init-topics:
+                condition: service_completed_successfully
         build:
             context: data_producer
             dockerfile: Dockerfile
@@ -114,9 +115,10 @@ services:
     latencylogger:
         image: latency_logger
         environment:
-            - TOPIC_NAME=topic1
+            - TOPIC_NAME=timestamps
         depends_on:
-            - kafka-init-topics
+            kafka-init-topics:
+                condition: service_completed_successfully
         build:
             context: latency_logger
             dockerfile: Dockerfile
