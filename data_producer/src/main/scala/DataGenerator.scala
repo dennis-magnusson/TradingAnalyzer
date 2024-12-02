@@ -114,9 +114,9 @@ object DataGenerator extends App {
   }
 
   def formatRecordData(values: Seq[String]): String = {
-    // ID, SecType, Last, Trading time, Trading date
+    // ID, SecType, Last, Trading time (now), Trading date
     val timestamp = Instant.now.toEpochMilli
-    Seq(values(0), values(1), values(21), values(23), values(26), timestamp)
+    Seq(values(0), values(1), values(21), timestamp, values(26))
       .mkString(",")
   }
 
