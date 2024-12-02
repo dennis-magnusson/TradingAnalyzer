@@ -54,6 +54,11 @@ object LatencyLogger extends App {
     }
   }
 
+  def toEpochMilli(stringTimestamp: String): Long = {
+    val isoFormattedTimestamp = stringTimestamp.replace(" ", "T") + "Z"
+    java.time.Instant.parse(isoFormattedTimestamp).toEpochMilli
+  }
+
   def consumeMessages(
       consumer: KafkaConsumer[String, String],
       pollingInterval: Int
@@ -63,16 +68,25 @@ object LatencyLogger extends App {
         val records =
           consumer.poll(java.time.Duration.ofMillis(pollingInterval))
         for (record <- records.iterator()) {
-          val generatorTimestampEpoch = record.value().split(",")(1).toLong
-          val analyzerTimestamp = record.value().split(",")(2)
-          val isoFormattedAnalyzerTimestamp =
-            analyzerTimestamp.replace(" ", "T") + "Z"
-          val analyzerTimestampEpoch =
-            java.time.Instant.parse(isoFormattedAnalyzerTimestamp).toEpochMilli
-          val lastKafkaTimestamp = record.timestamp()
-          val latency = lastKafkaTimestamp - generatorTimestampEpoch
-          println(s"Latency: ${latency}ms -> record with key: ${record
-              .key()} received at: ${record.timestamp()}")
+          val recordValues = record.value().split(",")
+          val t0: Long =
+            recordValues(1).toLong // data producer timestamp (trade time)
+          val t1: Long = toEpochMilli(
+            recordValues(2)
+          ) // kafka auto-generated timestamp (trade-events)
+          val t2: Long = toEpochMilli(
+            recordValues(3)
+          ) // data analyzer timestamp
+          val t3: Long =
+            record.timestamp() // kafka auto-generated timestamp (timestamps)
+          val t4: Long = java.time.Instant.now.toEpochMilli
+
+          val endToEndLatency: Long =
+            t4 - t0
+
+          println(
+            s"end-to-end (t4-t0): ${endToEndLatency}ms, t1-t0: ${t1 - t0}ms, t2-t1: ${t2 - t1}ms, t3-t2: ${t3 - t2}ms, t4-t3: ${t4 - t3}ms"
+          )
         }
       }
     } finally {
