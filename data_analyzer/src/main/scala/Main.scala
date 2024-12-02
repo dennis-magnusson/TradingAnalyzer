@@ -1,11 +1,13 @@
-import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+import spark.implicits._
 
 object Main extends App {
 
-  val latencyTopicName: String =
+  val writeTopicName: String =
     sys.env.getOrElse("LATENCY_TOPIC_NAME", "timestamps")
-  val tradeEventsTopicName: String =
+  val readTopicName: String =
     sys.env.getOrElse("TRADE_EVENTS_TOPIC_NAME", "trade-events")
   val kafkaServer: String = "kafka:9092"
 
@@ -13,14 +15,13 @@ object Main extends App {
     .appName("StreaminSample")
     .getOrCreate()
 
-  import spark.implicits._
-
   val df = spark.readStream
     .format("kafka")
     .option("kafka.bootstrap.servers", kafkaServer)
-    .option("subscribe", tradeEventsTopicName)
+    .option("subscribe", readTopicName)
     .option("startingOffsets", "earliest")
     .load()
+
   val cleandf = df
     .selectExpr(
       "cast(key as string) key",
@@ -28,34 +29,51 @@ object Main extends App {
       "timestamp"
     )
     .select(
-      split(col("value"), ",").getItem(2).as("trading_value"),
+      split(col("value"), ",").getItem(2).cast("double").as("trading_value"),
       split(col("value"), ",").getItem(3).as("tradingtime"),
       col("key"),
       col("timestamp")
     )
 
-  val withCurrentTimestamp =
-    cleandf.withColumn("current_timestamp", current_timestamp())
+  val windowedCounts = cleandf
+    .withWatermark("timestamp", "2 minutes")
+    .groupBy(
+      window($"timestamp", "5 minutes"),
+      $"key"
+    )
+    .agg(
+      avg("trading_value").alias("avg_value"),
+      max("tradingtime").alias("maximum_trading_time")
+    )
 
-  val output = withCurrentTimestamp.select(
+  // val withCurrentTimestamp = cleandf.withColumn("current_timestamp", current_timestamp())
+
+  val output = windowedCounts.select(
     col("key"),
     concat(
-      $"trading_value",
+      col("avg_value"),
       lit(","),
-      $"tradingtime",
+      col("maximum_trading_time"),
       lit(","),
-      $"timestamp",
+      col("window.start"),
       lit(","),
-      $"current_timestamp"
-    )
-      .as("value")
+      col("window.end")
+    ).alias("value")
   )
+
+  // val query = output.writeStream
+  //         .option("checkpointLocation" , "./sparkcheckpoint22")
+  //       .outputMode("append")
+  //       .format("console")
+  //       .start()
+
+  // val output = cleandf.select(col("key"), concat($"count", lit(","), $"window", lit(","), $"timestamp").as("value"))
 
   output.writeStream
     .format("kafka")
-    .option("checkpointLocation", "./spark")
+    .option("checkpointLocation", "./sparkcheckpoint2")
     .option("kafka.bootstrap.servers", kafkaServer)
-    .option("topic", latencyTopicName)
+    .option("topic", writeTopicName)
     .start()
     .awaitTermination()
 
