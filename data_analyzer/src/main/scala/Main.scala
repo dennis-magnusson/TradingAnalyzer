@@ -34,9 +34,20 @@ object Main extends App {
       col("timestamp")
     )
 
-  val output = cleandf.select(
+  val withCurrentTimestamp =
+    cleandf.withColumn("current_timestamp", current_timestamp())
+
+  val output = withCurrentTimestamp.select(
     col("key"),
-    concat($"trading_value", lit(","), $"tradingtime", lit(","), $"timestamp")
+    concat(
+      $"trading_value",
+      lit(","),
+      $"tradingtime",
+      lit(","),
+      $"timestamp",
+      lit(","),
+      $"current_timestamp"
+    )
       .as("value")
   )
 
