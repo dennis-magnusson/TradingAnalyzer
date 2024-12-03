@@ -1,7 +1,7 @@
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import spark.implicits._
+
 
 object Main extends App {
 
@@ -14,7 +14,7 @@ object Main extends App {
   val spark = SparkSession.builder
     .appName("StreaminSample")
     .getOrCreate()
-
+  import spark.implicits._
   val df = spark.readStream
     .format("kafka")
     .option("kafka.bootstrap.servers", kafkaServer)
