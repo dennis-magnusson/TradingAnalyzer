@@ -4,9 +4,22 @@ import scala.collection.JavaConversions._
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig}
 
+case class Timestamps(
+    securityID: String,
+    averageTradeValue: Float,
+    maximumTradingTime: Long,
+    windowStartEpoch: Long,
+    windowEndEpoch: Long,
+    windowStart: String,
+    windowEnd: String,
+    lastKafkaTimestamp: Long
+)
+
 object LatencyLogger extends App {
   val topicName: String = sys.env.getOrElse("TOPIC_NAME", "timestamps")
   val pollingInterval: Int = sys.env.getOrElse("POLLING_INTERVAL", "5000").toInt
+  val latencyLogPath: String =
+    sys.env.getOrElse("LATENCY_LOG_PATH", "./latency.log")
   val kafkaServer: String = "kafka:9092"
 
   if (!checkTopicExistence(kafkaServer, topicName)) {
@@ -59,6 +72,47 @@ object LatencyLogger extends App {
     java.time.Instant.parse(isoFormattedTimestamp).toEpochMilli
   }
 
+  def parseRecord(
+      record: org.apache.kafka.clients.consumer.ConsumerRecord[String, String]
+  ): Timestamps = {
+    val recordValues = record.value().split(",")
+    val avg_value = recordValues(0).toFloat
+    val maximum_trading_time = recordValues(1).toLong
+    val windowStart = recordValues(2)
+    val windowEnd = recordValues(3)
+    val windowStartEpoch = toEpochMilli(windowStart)
+    val windowEndEpoch = toEpochMilli(windowEnd)
+
+    Timestamps(
+      record.key(),
+      avg_value,
+      maximum_trading_time,
+      windowStartEpoch,
+      windowEndEpoch,
+      windowStart,
+      windowEnd,
+      record.timestamp()
+    )
+  }
+
+  def writeLatencyToFile(
+      record: Timestamps
+  ): Unit = {
+    ???
+  }
+
+  def printLatency(timestamps: Timestamps): Unit = {
+    val t0: Long = timestamps.maximumTradingTime
+    val t1: Long = timestamps.lastKafkaTimestamp
+    val t2: Long = java.time.Instant.now.toEpochMilli
+
+    val endToEndLatency: Long = t2 - t0
+
+    println(
+      s"${timestamps.securityID} | window: ${timestamps.windowStart} - ${timestamps.windowEnd} | (t2-t0): ${endToEndLatency}ms | (t1-t0): ${t1 - t0}ms | (t2-t1): ${t2 - t1}ms"
+    )
+  }
+
   def consumeMessages(
       consumer: KafkaConsumer[String, String],
       pollingInterval: Int
@@ -68,25 +122,7 @@ object LatencyLogger extends App {
         val records =
           consumer.poll(java.time.Duration.ofMillis(pollingInterval))
         for (record <- records.iterator()) {
-          val recordValues = record.value().split(",")
-          val t0: Long =
-            recordValues(1).toLong // data producer timestamp (trade time)
-          val t1: Long = toEpochMilli(
-            recordValues(2)
-          ) // kafka auto-generated timestamp (trade-events)
-          val t2: Long = toEpochMilli(
-            recordValues(3)
-          ) // data analyzer timestamp
-          val t3: Long =
-            record.timestamp() // kafka auto-generated timestamp (timestamps)
-          val t4: Long = java.time.Instant.now.toEpochMilli
-
-          val endToEndLatency: Long =
-            t4 - t0
-
-          println(
-            s"end-to-end (t4-t0): ${endToEndLatency}ms, t1-t0: ${t1 - t0}ms, t2-t1: ${t2 - t1}ms, t3-t2: ${t3 - t2}ms, t4-t3: ${t4 - t3}ms"
-          )
+          printLatency(parseRecord(record))
         }
       }
     } finally {
