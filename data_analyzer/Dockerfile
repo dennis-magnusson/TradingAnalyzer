@@ -27,4 +27,4 @@ COPY --from=buildingstage /app/target/scala-2.12/dataanalyzer-assembly-1.0.jar /
 
 VOLUME /data
 
-CMD ["/spark/bin/spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0", "--master", "spark://spark-master:7077", "./dataanalyzer-assembly-1.0.jar"]
+CMD ["/spark/bin/spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,com.influxdb:influxdb-client-java:4.0.0", "--master", "spark://spark-master:7077", "./dataanalyzer-assembly-1.0.jar"]
