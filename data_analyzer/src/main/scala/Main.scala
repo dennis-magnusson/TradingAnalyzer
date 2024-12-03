@@ -1,80 +1,29 @@
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types._
+import org.apache.kafka.streams.{KafkaStreams, StreamsBuilder, StreamsConfig}
+import org.apache.kafka.streams.kstream.{TimeWindows, Materialized}
+import org.apache.kafka.common.serialization.Serdes
+import java.time.Duration
+import java.util.Properties
 
+object KafkaStreamProcessor extends App {
 
-object Main extends App {
+  val writeTopicName = sys.env.getOrElse("WRITE_TOPIC_NAME", "timestamps")
+  val readTopicName = sys.env.getOrElse("READ_TOPIC_NAME", "trade-events")
+  val kafkaServer = sys.env.getOrElse("KAFKA_SERVER", "kafka:9092")
 
-  val writeTopicName: String =
-    sys.env.getOrElse("LATENCY_TOPIC_NAME", "timestamps")
-  val readTopicName: String =
-    sys.env.getOrElse("TRADE_EVENTS_TOPIC_NAME", "trade-events")
-  val kafkaServer: String = "kafka:9092"
-
-  val spark = SparkSession.builder
-    .appName("StreaminSample")
-    .getOrCreate()
-  import spark.implicits._
-  val df = spark.readStream
-    .format("kafka")
-    .option("kafka.bootstrap.servers", kafkaServer)
-    .option("subscribe", readTopicName)
-    .option("startingOffsets", "earliest")
-    .load()
-
-  val cleandf = df
-    .selectExpr(
-      "cast(key as string) key",
-      "cast(value as string) value",
-      "timestamp"
-    )
-    .select(
-      split(col("value"), ",").getItem(2).cast("double").as("trading_value"),
-      split(col("value"), ",").getItem(3).as("tradingtime"),
-      col("key"),
-      col("timestamp")
-    )
-
-  val windowedCounts = cleandf
-    .withWatermark("timestamp", "2 minutes")
-    .groupBy(
-      window($"timestamp", "5 minutes"),
-      $"key"
-    )
-    .agg(
-      avg("trading_value").alias("avg_value"),
-      max("tradingtime").alias("maximum_trading_time")
-    )
-
-  // val withCurrentTimestamp = cleandf.withColumn("current_timestamp", current_timestamp())
-
-  val output = windowedCounts.select(
-    col("key"),
-    concat(
-      col("avg_value"),
-      lit(","),
-      col("maximum_trading_time"),
-      lit(","),
-      col("window.start"),
-      lit(","),
-      col("window.end")
-    ).alias("value")
+  val props = new Properties()
+  props.put(StreamsConfig.APPLICATION_ID_CONFIG, "trading-analyzer")
+  props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServer)
+  props.put(
+    StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG,
+    Serdes.String().getClass
+  )
+  props.put(
+    StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG,
+    Serdes.String().getClass
   )
 
-  // val query = output.writeStream
-  //         .option("checkpointLocation" , "./sparkcheckpoint22")
-  //       .outputMode("append")
-  //       .format("console")
-  //       .start()
+  val builder = new StreamsBuilder()
+  val tradingEvents = builder.stream[String, String](readTopicName)
 
-  // val output = cleandf.select(col("key"), concat($"count", lit(","), $"window", lit(","), $"timestamp").as("value"))
-
-  output.writeStream
-    .format("kafka")
-    .option("checkpointLocation", "./sparkcheckpoint2")
-    .option("kafka.bootstrap.servers", kafkaServer)
-    .option("topic", writeTopicName)
-    .start()
-    .awaitTermination()
-
+  println("Hello World")
 }

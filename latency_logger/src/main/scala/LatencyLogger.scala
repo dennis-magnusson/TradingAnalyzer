@@ -6,7 +6,7 @@ import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig}
 
 object LatencyLogger extends App {
   val topicName: String = sys.env.getOrElse("TOPIC_NAME", "timestamps")
-  val pollingInterval: Int = sys.env.getOrElse("POLLING_INTERVAL", "5000").toInt
+  val pollingInterval: Int = sys.env.getOrElse("POLLING_INTERVAL", "500").toInt
   val kafkaServer: String = "kafka:9092"
 
   if (!checkTopicExistence(kafkaServer, topicName)) {
@@ -59,34 +59,42 @@ object LatencyLogger extends App {
     java.time.Instant.parse(isoFormattedTimestamp).toEpochMilli
   }
 
+  def parseAndPrintLatency(
+      record: org.apache.kafka.clients.consumer.ConsumerRecord[String, String]
+  ): Unit = {
+    val recordValues = record.value().split(",")
+    val t0: Long =
+      recordValues(1).toLong // data producer timestamp (trade time)
+    val t1: Long = toEpochMilli(
+      recordValues(2)
+    ) // kafka auto-generated timestamp (trade-events)
+    val t2: Long = toEpochMilli(
+      recordValues(3)
+    ) // data analyzer timestamp
+    val t3: Long =
+      record.timestamp() // kafka auto-generated timestamp (timestamps)
+    val t4: Long = java.time.Instant.now.toEpochMilli
+
+    val endToEndLatency: Long =
+      t4 - t0
+
+    println(
+      s"end-to-end (t4-t0): ${endToEndLatency}ms, t1-t0: ${t1 - t0}ms, t2-t1: ${t2 - t1}ms, t3-t2: ${t3 - t2}ms, t4-t3: ${t4 - t3}ms"
+    )
+  }
+
   def consumeMessages(
       consumer: KafkaConsumer[String, String],
       pollingInterval: Int
   ): Unit = {
+    println(s"Polling interval: $pollingInterval ms")
     try {
       while (true) {
         val records =
           consumer.poll(java.time.Duration.ofMillis(pollingInterval))
         for (record <- records.iterator()) {
-          val recordValues = record.value().split(",")
-          val t0: Long =
-            recordValues(1).toLong // data producer timestamp (trade time)
-          val t1: Long = toEpochMilli(
-            recordValues(2)
-          ) // kafka auto-generated timestamp (trade-events)
-          val t2: Long = toEpochMilli(
-            recordValues(3)
-          ) // data analyzer timestamp
-          val t3: Long =
-            record.timestamp() // kafka auto-generated timestamp (timestamps)
-          val t4: Long = java.time.Instant.now.toEpochMilli
-
-          val endToEndLatency: Long =
-            t4 - t0
-
-          println(
-            s"end-to-end (t4-t0): ${endToEndLatency}ms, t1-t0: ${t1 - t0}ms, t2-t1: ${t2 - t1}ms, t3-t2: ${t3 - t2}ms, t4-t3: ${t4 - t3}ms"
-          )
+          // parseAndPrintLatency(record)
+          println(record.value())
         }
       }
     } finally {

@@ -21,10 +21,10 @@ COPY . /app/
 # build jar file for execution stage
 RUN sbt assembly
 
-FROM bde2020/spark-master:3.3.0-hadoop3.3
+FROM openjdk:8-jre-slim
 WORKDIR /app
 COPY --from=buildingstage /app/target/scala-2.12/dataanalyzer-assembly-1.0.jar /app/dataanalyzer-assembly-1.0.jar
 
 VOLUME /data
 
-CMD ["/spark/bin/spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0", "--master", "spark://spark-master:7077", "./dataanalyzer-assembly-1.0.jar"]
+CMD ["java", "-jar", "dataanalyzer-assembly-1.0.jar"]
