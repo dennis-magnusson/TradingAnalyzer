@@ -52,7 +52,7 @@ services:
             context: data_producer
             dockerfile: Dockerfile
         environment:
-            SPEED_FACTOR: 5
+            SPEED_FACTOR: 2
             CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
             PRINT_SENT_RECORDS: true
         volumes:
