@@ -5,8 +5,9 @@ Low-latency platform for real-time trading analysis.
 ## Running the project
 
 0. Prerequisites
-   - docker and docker compose
-   - DEBS 2022 Grand Challenge dataset's csv files ([link](https://zenodo.org/records/6382482))
+
+    - docker and docker compose
+    - DEBS 2022 Grand Challenge dataset's csv files ([link](https://zenodo.org/records/6382482))
 
 1. Place DEBS 2022 Grand Challenge dataset's csv files in a directory `./data`.
 
@@ -40,29 +41,40 @@ bin/kafka-console-consumer.sh --topic trade-events --bootstrap-server localhost:
 
 4. Connecting to kafka in spark
 
-   a. Using spark shell:
-      execute this command:
-      ```
-      docker exec -it spark-master bash
-      /spark/bin/spark-shell --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
-      ```
-      you are now in the spark interactive shell 
-      connect to kafka using this command:
-      ```
-      val df = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "kafka:9092").option("subscribe", "trade-events").option("startingOffsets","earliest").load()
+    a. Using spark shell:
+    execute this command:
 
-      // what ever logic you want here:
+    ```
+    docker exec -it spark-master bash
+    /spark/bin/spark-shell --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
+    ```
 
-      // printing dataframe in console
-      val query = df.writeStream
-      .outputMode("append")
-      .format("console")
-      .start()
+    you are now in the spark interactive shell
+    connect to kafka using this command:
 
-      ```
-      
+    ```
+    val df = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "kafka:9092").option("subscribe", "trade-events").option("startingOffsets","earliest").load()
+
+    // what ever logic you want here:
+
+    // printing dataframe in console
+    val query = df.writeStream
+    .outputMode("append")
+    .format("console")
+    .start()
+
+    ```
+
+5. Consuming manually from the results topic:
+
+```
+docker exec -it <kafka_container> /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic timestamps --from-beginning --property print.key=true
+```
+
 ## Spark
-you can visit spark master ui in this [link](http://localhost:8080/). You can see the registered workers and applications here. 
+
+you can visit spark master ui in this [link](http://localhost:8080/). You can see the registered workers and applications here.
+
 ## Liscense
 
 This project is liscensed under the GPL-3.0 license.
