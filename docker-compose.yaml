@@ -41,7 +41,7 @@ services:
             dockerfile: Dockerfile
         environment:
             SPEED_FACTOR: 5
-            CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
+            CSV_PATH: /data/debs2022-gc-trading-day-08-11-21.csv
             PRINT_SENT_RECORDS: true
         volumes:
             - ./data:/data

@@ -24,9 +24,14 @@ object Main extends App {
 import spark.implicits._ 
 
 val df = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "kafka:9092").option("subscribe", "trade-events").option("startingOffsets","earliest").load()
+
 val cleandf = df.selectExpr("cast(key as string) key", "cast(value as string) value", "timestamp").select(
-    split(col("value"),",").getItem(2).as("trading_value"),
-    split(col("value"),",").getItem(3).as("tradingtime"), col("key"), col("timestamp"))
+  split(col("value"), ",").getItem(2).cast("double").as("trading_value"), 
+  split(col("value"), ",").getItem(3).as("tradingtime"),col("key"),col("timestamp"))
+
+// see the data
+// val query1 = cleandf.writeStream.queryName("counting").format("memory").outputMode("append").start()
+// spark.sql("select * from counting").show()
 
 // val output = cleandf.select(col("key"), concat($"trading_value", lit(","), $"tradingtime", lit(","), $"timestamp").as("value"))
 
@@ -50,8 +55,8 @@ def writeToInfluxDB(spark: SparkSession, output: DataFrame, batchId: Long): Unit
   try {
     output.collect().foreach { row =>
       val point = Point.measurement("measure")
-        .addTag("symbol", "key")
-        .addField("value", 55.0)
+        .addTag("symbol", row.getAs[String]("key"))
+        .addField("EMA", row.getAs[Double]("value"))
         .time(Instant.now(), WritePrecision.MS)
       
       writeApi.writePoint(point)
