@@ -2,7 +2,6 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
-
 object Main extends App {
 
   val writeTopicName: String =
@@ -14,7 +13,9 @@ object Main extends App {
   val spark = SparkSession.builder
     .appName("StreaminSample")
     .getOrCreate()
+
   import spark.implicits._
+
   val df = spark.readStream
     .format("kafka")
     .option("kafka.bootstrap.servers", kafkaServer)
@@ -36,9 +37,9 @@ object Main extends App {
     )
 
   val windowedCounts = cleandf
-    .withWatermark("timestamp", "2 minutes")
+    // .withWatermark("timestamp", "1 minutes")
     .groupBy(
-      window($"timestamp", "5 minutes"),
+      window($"timestamp", "1 minutes"),
       $"key"
     )
     .agg(
@@ -71,6 +72,7 @@ object Main extends App {
 
   output.writeStream
     .format("kafka")
+    .outputMode("update")
     .option("checkpointLocation", "./sparkcheckpoint2")
     .option("kafka.bootstrap.servers", kafkaServer)
     .option("topic", writeTopicName)
