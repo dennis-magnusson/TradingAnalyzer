@@ -5,6 +5,7 @@ import org.apache.kafka.streams.kstream.{
   TimeWindowedKStream,
   Produced,
   KeyValueMapper,
+  ValueMapper,
   Windowed,
   KStream,
   Materialized,
@@ -26,8 +27,9 @@ object KafkaStreamProcessor extends App {
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  val writeTopicName = sys.env.getOrElse("WRITE_TOPIC_NAME", "timestamps")
+  val latencyTopicName = sys.env.getOrElse("LATENCY_TOPIC_NAME", "latency")
   val readTopicName = sys.env.getOrElse("READ_TOPIC_NAME", "trade-events")
+  val advisoryTopicName = sys.env.getOrElse("ADVISORY_TOPIC_NAME", "advisory")
   val kafkaServer = sys.env.getOrElse("KAFKA_SERVER", "kafka:9092")
 
   // the events in readTopicName are key: [String], value: [String]
@@ -92,7 +94,7 @@ object KafkaStreamProcessor extends App {
 
   val tradeEventStream: KStream[Windowed[String], TradeEvent] = parsedStream
     .groupByKey()
-    .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(3)))
+    .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(2)))
     .reduce(reducer, materialized)
     .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded()))
     .toStream()
@@ -128,14 +130,24 @@ object KafkaStreamProcessor extends App {
 
   // formattedStream
   // .to(
-  //   writeTopicName,
+  //   latencyTopicName,
   //   Produced.`with`(Serdes.String(), Serdes.String())
   // )
 
-  val advisoryStream = emaStream
-    .mapValues((key, ema) => detectAdvisory(ema.shortEMA, ema.longEMA))
+  val advisoryMapper: ValueMapper[EMA, Option[String]] =
+    new ValueMapper[EMA, Option[String]] {
+      override def apply(ema: EMA): Option[String] = {
+        if (ema.shortEMA > ema.longEMA) Some("BUY")
+        else None // TODO: Add sell advisory
+      }
+    }
+
+  val advisoryStream: KStream[String, String] = emaStream
+    .mapValues(advisoryMapper)
     .filter((_, advisory) => advisory.isDefined)
-    .to(writeTopicName)
+    .peek((key, advisory) => {
+      logger.info(s"ALERT: ${key.key()},${advisory.get}")
+    })
 
   val topology = builder.build()
 

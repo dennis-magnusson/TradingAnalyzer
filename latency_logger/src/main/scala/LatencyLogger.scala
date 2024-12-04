@@ -93,8 +93,12 @@ object LatencyLogger extends App {
         val records =
           consumer.poll(java.time.Duration.ofMillis(pollingInterval))
         for (record <- records.iterator()) {
-          // parseAndPrintLatency(record)
-          println(record.value())
+          val values = record.value().split(",")
+          val windowEnd = java.time.Instant.parse(values(2)).toEpochMilli
+          val t0 = values(3).toLong
+          val t1 = values(0).toLong
+          val latency = t1 - t0
+          println(s"${latency}ms: ${record.key()}")
         }
       }
     } finally {
