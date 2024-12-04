@@ -3,12 +3,30 @@ scalaVersion := "2.12.20"
 name := "dataanalyzer"
 version := "1.0"
 
-libraryDependencies += "org.apache.kafka" % "kafka-streams" % "3.8.1"
-libraryDependencies += "org.apache.kafka" % "kafka-clients" % "3.8.1"
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.10" % Test
-libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.15.2"
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
-libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.30"
+val jacksonVersion = "2.15.2"
+val kafkaVersion = "3.8.1"
+val scalaTestVersion = "3.2.10"
+val logbackVersion = "1.2.3"
+val slf4jVersion = "1.7.30"
+
+libraryDependencies ++= Seq(
+  "org.apache.kafka" % "kafka-streams" % kafkaVersion,
+  "org.apache.kafka" % "kafka-clients" % kafkaVersion,
+  "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
+  "ch.qos.logback" % "logback-classic" % logbackVersion,
+  "org.slf4j" % "slf4j-api" % slf4jVersion,
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion
+)
+
+dependencyOverrides ++= Seq(
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion
+)
 
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", _ @_*) => MergeStrategy.discard
