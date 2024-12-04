@@ -52,7 +52,7 @@ services:
             context: data_producer
             dockerfile: Dockerfile
         environment:
-            SPEED_FACTOR: 5
+            SPEED_FACTOR: 1
             CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
             PRINT_SENT_RECORDS: true
         volumes:
@@ -95,22 +95,22 @@ services:
     #     networks:
     #         - kafka-network
 
-    influxdb:
-        image: influxdb:2.7
-        environment:
-            DOCKER_INFLUXDB_INIT_MODE: setup
-            DOCKER_INFLUXDB_INIT_USERNAME: admin
-            DOCKER_INFLUXDB_INIT_PASSWORD: admin-password
-            DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "1dd585b8fd63b23323387dae193220381521cdee5f1ea50086b091deae1c2c44"
-            DOCKER_INFLUXDB_INIT_ORG: docs
-            DOCKER_INFLUXDB_INIT_BUCKET: home
+    # influxdb:
+    #     image: influxdb:2.7
+    #     environment:
+    #         DOCKER_INFLUXDB_INIT_MODE: setup
+    #         DOCKER_INFLUXDB_INIT_USERNAME: admin
+    #         DOCKER_INFLUXDB_INIT_PASSWORD: admin-password
+    #         DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "1dd585b8fd63b23323387dae193220381521cdee5f1ea50086b091deae1c2c44"
+    #         DOCKER_INFLUXDB_INIT_ORG: docs
+    #         DOCKER_INFLUXDB_INIT_BUCKET: home
 
-        ports:
-            - "8086:8086" # InfluxDB default port
-        volumes:
-            - influxdb-storage:/var/lib/influxdb
-        networks:
-            - kafka-network
+    #     ports:
+    #         - "8086:8086" # InfluxDB default port
+    #     volumes:
+    #         - influxdb-storage:/var/lib/influxdb
+    #     networks:
+    #         - kafka-network
 
     latencylogger:
         image: latency_logger
@@ -128,8 +128,8 @@ services:
         networks:
             - kafka-network
 
-volumes:
-    influxdb-storage:
+# volumes:
+#     influxdb-storage:
 
 networks:
     kafka-network:
