@@ -12,6 +12,7 @@ import org.apache.kafka.common.utils.Bytes
 import org.apache.kafka.streams.state.WindowStore
 import org.apache.kafka.common.serialization.{Serdes, Serde}
 import org.apache.kafka.streams.{KafkaStreams, StreamsConfig}
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import java.time.Duration
 import java.util.Properties
 
@@ -27,7 +28,7 @@ object KafkaStreamProcessor extends App {
   // the events in readTopicName are key: [String], value: [String]
 
   val props = new Properties()
-  props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-stream-processor")
+  props.put(StreamsConfig.APPLICATION_ID_CONFIG, "data-analyzer")
   props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServer)
   props.put(
     StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG,
@@ -35,16 +36,22 @@ object KafkaStreamProcessor extends App {
   )
   props.put(
     StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG,
-    Serdes.String().getClass
+    classOf[TradeEventSerde].getName
   )
   props.put(StreamsConfig.STATE_DIR_CONFIG, "/data")
   props.put(StreamsConfig.TOPIC_PREFIX + "cleanup.policy", "compact")
   props.put(StreamsConfig.TOPIC_PREFIX + "retention.ms", "172800000")
   props.put(StreamsConfig.REPLICATION_FACTOR_CONFIG, "1") // 2 days
+
   props.put(
-    StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG,
-    classOf[TradeEventSerde].getName
+    ConsumerConfig.GROUP_INSTANCE_ID_CONFIG,
+    "data-analyzer-group-inst-id"
   )
+  props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000")
+  // props.put(
+  //   StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,
+  //   "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler"
+  // )
 
   val smoothingFactorShort = 2.0 / (1 + 38)
   val smoothingFactorLong = 2.0 / (1 + 100)
@@ -58,21 +65,26 @@ object KafkaStreamProcessor extends App {
       TradeEvent.fromParts(value.split(","))
     })
 
-  val emaStream = parsedStream
-    .groupByKey()
-    .windowedBy(TimeWindows.of(Duration.ofMinutes(1)))
-    .aggregate(
-      EMA.init,
-      (
-          (symbol: Windowed[String], tradeEvent: TradeEvent, aggr: EMA) =>
-            aggr.update(tradeEvent.lastPrice, smoothingFactorShort)
-      ),
-      Materialized.as[String, EMA, WindowStore[Bytes, Array[Byte]]]("ema-store")
-    )
-    .toStream()
+  // def aggregator(symbol: String, tradeEvent: TradeEvent, aggr: EMA): EMA = {
+  //   aggr.update(
+  //     tradeEvent.lastPrice,
+  //     smoothingFactorShort,
+  //     smoothingFactorLong
+  //   )
+  // }
+
+  // val emaStream = parsedStream
+  //   .groupByKey()
+  //   .windowedBy(TimeWindows.of(Duration.ofMinutes(1)))
+  //   .aggregate(
+  //     EMA.initializer
+  //     aggregator,
+  //     Materialized.`as`("ema-store")
+  //   )
+  //   .toStream()
 
   // print the emas
-  emaStream.foreach((key, value) => {
+  parsedStream.foreach((key, value) => {
     println(s"key: $key, value: $value")
   })
 
@@ -81,11 +93,19 @@ object KafkaStreamProcessor extends App {
   //   .filter((_, advisory) => advisory.isDefined)
   //   .to(writeTopicName)
 
-  val producedInstance =
-    Produced.`with`(Serdes.String(), Serdes.String())
-
   val topology = builder.build()
 
+  println(topology.describe())
+
   val streams = new KafkaStreams(topology, props)
-  streams.start()
+
+  streams.setUncaughtExceptionHandler((thread, throwable) => {
+    println(s"Thread: $thread, Throwable: $throwable")
+  })
+
+  try {
+    streams.start()
+  } catch {
+    case e: Throwable => e.printStackTrace()
+  }
 }

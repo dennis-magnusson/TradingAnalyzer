@@ -1,18 +1,24 @@
 package Models
 
+import org.apache.kafka.streams.kstream.Initializer
+
 case class EMA(
     shortEMA: Double,
     longEMA: Double
 ) {
-  def update(lastPrice: Double, smoothingFactor: Double): EMA = {
+  def update(
+      lastPrice: Double,
+      smoothingFactorShort: Double,
+      smoothingFactorLong: Double
+  ): EMA = {
     val newShortEMA =
-      shortEMA * (1 - smoothingFactor) + lastPrice * smoothingFactor
+      shortEMA * (1 - smoothingFactorShort) + lastPrice * smoothingFactorShort
     val newLongEMA =
-      longEMA * (1 - (smoothingFactor / 2)) + lastPrice * (smoothingFactor / 2)
+      longEMA * (1 - (smoothingFactorLong / 2)) + lastPrice * (smoothingFactorLong / 2)
     EMA(newShortEMA, newLongEMA)
   }
 }
 
 object EMA {
-  def init: EMA = EMA(0.0, 0.0) // Initial EMA values set to 0
+  def initializer: Initializer[Models.EMA] = () => EMA(0.0, 0.0)
 }
