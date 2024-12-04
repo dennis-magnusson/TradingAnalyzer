@@ -4,20 +4,25 @@ import org.apache.kafka.streams.kstream.{
   TimeWindowedKStream,
   Produced,
   KeyValueMapper,
-  Windowed
+  Windowed,
+  KStream,
+  Materialized
 }
-import org.apache.kafka.common.serialization.Serdes
+import org.apache.kafka.common.utils.Bytes
+import org.apache.kafka.streams.state.WindowStore
+import org.apache.kafka.common.serialization.{Serdes, Serde}
 import org.apache.kafka.streams.{KafkaStreams, StreamsConfig}
 import java.time.Duration
 import java.util.Properties
+
+import Serializers.TradeEventSerde
+import Models.{TradeEvent, EMA}
 
 object KafkaStreamProcessor extends App {
 
   val writeTopicName = sys.env.getOrElse("WRITE_TOPIC_NAME", "timestamps")
   val readTopicName = sys.env.getOrElse("READ_TOPIC_NAME", "trade-events")
   val kafkaServer = sys.env.getOrElse("KAFKA_SERVER", "kafka:9092")
-
-  // read from readTopicName on kafkaServer, aggregate a 5 minute tumbling window, write something for each window to writeTopicName
 
   // the events in readTopicName are key: [String], value: [String]
 
@@ -32,38 +37,49 @@ object KafkaStreamProcessor extends App {
     StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG,
     Serdes.String().getClass
   )
+  props.put(StreamsConfig.STATE_DIR_CONFIG, "/data")
+  props.put(StreamsConfig.TOPIC_PREFIX + "cleanup.policy", "compact")
+  props.put(StreamsConfig.TOPIC_PREFIX + "retention.ms", "172800000")
+  props.put(StreamsConfig.REPLICATION_FACTOR_CONFIG, "1") // 2 days
+  props.put(
+    StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG,
+    classOf[TradeEventSerde].getName
+  )
+
+  val smoothingFactorShort = 2.0 / (1 + 38)
+  val smoothingFactorLong = 2.0 / (1 + 100)
 
   val builder = new StreamsBuilder()
+  val inputStream = builder.stream[String, String](readTopicName)
 
-  val windowed: TimeWindowedKStream[String, String] =
-    builder
-      .stream[String, String](readTopicName)
-      .groupByKey()
-      .windowedBy(TimeWindows.of(Duration.ofMinutes(1)))
-      .aggregate(
-        () => (0.0, 0),
-        (key: String, value: String, aggregate: (Double, Int)) => {
-          val (sum, count) = aggregate
-          val lastTradePrice = value.split(",")(1).toDouble
-          (sum + lastTradePrice, count + 1)
-        }
-      )
-      .toStream()
-      .foreach((key, value) => {
-        println(
-          s"Key: ${key.key()} Window start: ${key
-              .window()
-              .start()}, Window end: ${key.window().end()}, Count: $value"
-        )
-      })
+  val parsedStream: KStream[String, TradeEvent] =
+    inputStream.mapValues(value => {
+      val parts = value.split(",")
+      TradeEvent.fromParts(value.split(","))
+    })
 
-  val a: Nothing = windowed
+  val emaStream = parsedStream
+    .groupByKey()
+    .windowedBy(TimeWindows.of(Duration.ofMinutes(1)))
+    .aggregate(
+      EMA.init,
+      (
+          (symbol: Windowed[String], tradeEvent: TradeEvent, aggr: EMA) =>
+            aggr.update(tradeEvent.lastPrice, smoothingFactorShort)
+      ),
+      Materialized.as[String, EMA, WindowStore[Bytes, Array[Byte]]]("ema-store")
+    )
+    .toStream()
 
-  // counts.foreach((key, value) => {
-  //   println(
-  //     s"Key: ${key.key()} Window start: ${key.window().start()}, Window end: ${key.window().end()}, Count: $value"
-  //   )
-  // })
+  // print the emas
+  emaStream.foreach((key, value) => {
+    println(s"key: $key, value: $value")
+  })
+
+  // val advisoryStream = emaStream
+  //   .mapValues((key, ema) => detectAdvisory(ema.shortEMA, ema.longEMA))
+  //   .filter((_, advisory) => advisory.isDefined)
+  //   .to(writeTopicName)
 
   val producedInstance =
     Produced.`with`(Serdes.String(), Serdes.String())
