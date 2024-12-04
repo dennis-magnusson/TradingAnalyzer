@@ -15,6 +15,9 @@ case class EMA(
       longEMA * (1 - (smoothingFactorLong / 2)) + lastPrice * (smoothingFactorLong / 2)
     EMA(newShortEMA, newLongEMA)
   }
+
+  override def toString(): String =
+    s"ShortEMA: ${shortEMA}, LongEMA: ${longEMA}"
 }
 
 object EMA {
