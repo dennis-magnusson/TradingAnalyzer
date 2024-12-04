@@ -6,7 +6,9 @@ import org.apache.kafka.streams.kstream.{
   KeyValueMapper,
   Windowed,
   KStream,
-  Materialized
+  Materialized,
+  Initializer,
+  Aggregator
 }
 import org.apache.kafka.common.utils.Bytes
 import org.apache.kafka.streams.state.WindowStore
@@ -16,7 +18,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import java.time.Duration
 import java.util.Properties
 
-import Serializers.TradeEventSerde
+import Serializers.{TradeEventSerde, EMASerde}
 import Models.{TradeEvent, EMA}
 
 object KafkaStreamProcessor extends App {
@@ -36,8 +38,12 @@ object KafkaStreamProcessor extends App {
   )
   props.put(
     StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG,
-    classOf[TradeEventSerde].getName
+    Serdes.String().getClass
   )
+  // props.put(
+  //   StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG,
+  //   classOf[TradeEventSerde].getName
+  // )
   props.put(StreamsConfig.STATE_DIR_CONFIG, "/data")
   props.put(StreamsConfig.TOPIC_PREFIX + "cleanup.policy", "compact")
   props.put(StreamsConfig.TOPIC_PREFIX + "retention.ms", "172800000")
@@ -65,27 +71,29 @@ object KafkaStreamProcessor extends App {
       TradeEvent.fromParts(value.split(","))
     })
 
-  // def aggregator(symbol: String, tradeEvent: TradeEvent, aggr: EMA): EMA = {
-  //   aggr.update(
-  //     tradeEvent.lastPrice,
-  //     smoothingFactorShort,
-  //     smoothingFactorLong
-  //   )
-  // }
+  val initializer: Initializer[EMA] = () => EMA(0.0, 0.0)
+  val aggregator: Aggregator[String, TradeEvent, EMA] =
+    (symbol, tradeEvent, aggregate) =>
+      aggregate.update(
+        tradeEvent.lastPrice,
+        smoothingFactorShort,
+        smoothingFactorLong
+      )
+  val materialized: Materialized[String, EMA, WindowStore[Bytes, Array[Byte]]] =
+    Materialized
+      .`as`[String, EMA, WindowStore[Bytes, Array[Byte]]]("ema-store")
+      .withKeySerde(Serdes.String())
+      .withValueSerde(new EMASerde())
 
-  // val emaStream = parsedStream
-  //   .groupByKey()
-  //   .windowedBy(TimeWindows.of(Duration.ofMinutes(1)))
-  //   .aggregate(
-  //     EMA.initializer
-  //     aggregator,
-  //     Materialized.`as`("ema-store")
-  //   )
-  //   .toStream()
+  val emaStream = parsedStream
+    .groupByKey()
+    .windowedBy(TimeWindows.of(Duration.ofMinutes(1)))
+    .aggregate(initializer, aggregator, materialized)
+    .toStream()
 
   // print the emas
-  parsedStream.foreach((key, value) => {
-    println(s"key: $key, value: $value")
+  emaStream.foreach((key, value) => {
+    println(s"EMAPRINT: key: $key, value: $value")
   })
 
   // val advisoryStream = emaStream

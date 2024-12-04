@@ -1,7 +1,5 @@
 package Models
 
-import org.apache.kafka.streams.kstream.Initializer
-
 case class EMA(
     shortEMA: Double,
     longEMA: Double
@@ -20,5 +18,7 @@ case class EMA(
 }
 
 object EMA {
-  def initializer: Initializer[Models.EMA] = () => EMA(0.0, 0.0)
+  def fromParts(parts: Array[String]): EMA = {
+    EMA(parts(0).toDouble, parts(1).toDouble)
+  }
 }
