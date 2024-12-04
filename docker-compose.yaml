@@ -37,6 +37,9 @@ services:
             LATENCY_TOPIC_NAME: timestamps
             LATENCY_PARTITIONS: 1
             LATENCY_REPLICATION_FACTOR: 1
+            ADVISORY_TOPIC_NAME: advisory
+            ADVISORY_PARTITIONS: 1
+            ADVISORY_REPLICATION_FACTOR: 1
         volumes:
             - ./kafka-init-topics.sh:/kafka-init-topics.sh
         entrypoint: ["/bin/sh", "-c"]
@@ -57,7 +60,7 @@ services:
             SPEED_FACTOR: 1
             CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
             PRINT_SENT_RECORDS: true
-            TEST_STATE: true
+            TEST_STATE: false
         volumes:
             - ./data:/data
         networks:
@@ -70,6 +73,10 @@ services:
         build:
             context: data_analyzer
             dockerfile: Dockerfile
+        environment:
+            READ_TOPIC_NAME: trade-events
+            LATENCY_TOPIC_NAME: latency
+            ADVISORY_TOPIC_NAME: advisory
         volumes:
             - ./data:/data
         networks:
@@ -118,8 +125,7 @@ services:
     latencylogger:
         image: latency_logger
         environment:
-            TOPIC_NAME: timestamps
-
+            TOPIC_NAME: latency
         depends_on:
             kafka-init-topics:
                 condition: service_completed_successfully
