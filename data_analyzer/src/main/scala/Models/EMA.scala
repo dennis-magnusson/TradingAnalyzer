@@ -1,27 +1,19 @@
 package Models
 
 case class EMA(
-    shortEMA: Double,
-    longEMA: Double
+    var shortEMA: Double,
+    var longEMA: Double
 ) {
+
   def update(
       lastPrice: Double,
       smoothingFactorShort: Double,
       smoothingFactorLong: Double
   ): EMA = {
-    val newShortEMA =
+    shortEMA =
       shortEMA * (1 - smoothingFactorShort) + lastPrice * smoothingFactorShort
-    val newLongEMA =
+    longEMA =
       longEMA * (1 - (smoothingFactorLong / 2)) + lastPrice * (smoothingFactorLong / 2)
-    EMA(newShortEMA, newLongEMA)
-  }
-
-  override def toString(): String =
-    s"ShortEMA: ${shortEMA}, LongEMA: ${longEMA}"
-}
-
-object EMA {
-  def fromParts(parts: Array[String]): EMA = {
-    EMA(parts(0).toDouble, parts(1).toDouble)
+    this
   }
 }
