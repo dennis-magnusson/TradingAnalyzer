@@ -134,19 +134,19 @@ object KafkaStreamProcessor extends App {
   //   Produced.`with`(Serdes.String(), Serdes.String())
   // )
 
-  val advisoryMapper: ValueMapper[EMA, Option[String]] =
-    new ValueMapper[EMA, Option[String]] {
-      override def apply(ema: EMA): Option[String] = {
-        if (ema.shortEMA > ema.longEMA) Some("BUY")
-        else None // TODO: Add sell advisory
+  val advisoryMapper: KeyValueMapper[String, EMA, KeyValue[String, String]] =
+    new KeyValueMapper[String, EMA, KeyValue[String, String]] {
+      override def apply(symbol: String, ema: EMA): KeyValue[String, String]= {
+        if (ema.shortEMA > ema.longEMA)  KeyValue.pair(symbol, "BUY") 
+        else KeyValue.pair(symbol, "-")
       }
     }
 
   val advisoryStream: KStream[String, String] = emaStream
-    .mapValues(advisoryMapper)
-    .filter((_, advisory) => advisory.isDefined)
+    .map[String, String](advisoryMapper)
+    .filter((_, advisory) => advisory != "-")
     .peek((key, advisory) => {
-      logger.info(s"ALERT: ${key.key()},${advisory.get}")
+      logger.info(s"ALERT: ${key},${advisory}")
     })
 
   val topology = builder.build()
