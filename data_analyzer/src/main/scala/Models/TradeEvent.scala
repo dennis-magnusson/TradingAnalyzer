@@ -1,5 +1,11 @@
 package Models
 
+case class WindowResults(
+    var lastTradeEvent: TradeEvent,
+    var windowStart: Long = 0,
+    var windowEnd: Long = 0
+)
+
 case class TradeEvent(
     symbol: String,
     secType: String,
