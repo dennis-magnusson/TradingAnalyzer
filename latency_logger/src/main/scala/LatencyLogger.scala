@@ -85,7 +85,14 @@ object LatencyLogger extends App {
         val records =
           consumer.poll(java.time.Duration.ofMillis(pollingInterval))
         for (record <- records.iterator()) {
-          println(s"${record.key()}, ${record.value()}")
+          // "$latestShortEMA,$previousShortEMA,$latestLongEMA,$previousLongEMA,$lastUpdated,$lastUpdateWindowStart,$lastUpdateWindowEnd"
+          val recordValues = record.value().split(",")
+          val emaCalculationLatency =
+            recordValues(4).toLong - recordValues(6).toLong
+          val arrivalTime = System.currentTimeMillis()
+          val arrivalLatency = arrivalTime - recordValues(4).toLong
+          println(s"${emaCalculationLatency}ms (+${arrivalLatency}ms): ${record
+              .key()}, ${record.value()}")
         }
       }
     } finally {
