@@ -34,9 +34,9 @@ services:
             TRADE_EVENTS_TOPIC_NAME: trade-events
             TRADE_EVENTS_PARTITIONS: 1
             TRADE_EVENTS_REPLICATION_FACTOR: 1
-            LATENCY_TOPIC_NAME: timestamps
-            LATENCY_PARTITIONS: 1
-            LATENCY_REPLICATION_FACTOR: 1
+            EMA_TOPIC_NAME: ema
+            EMA_PARTITIONS: 1
+            EMA_REPLICATION_FACTOR: 1
             ADVISORY_TOPIC_NAME: advisory
             ADVISORY_PARTITIONS: 1
             ADVISORY_REPLICATION_FACTOR: 1
@@ -75,7 +75,7 @@ services:
             dockerfile: Dockerfile
         environment:
             READ_TOPIC_NAME: trade-events
-            LATENCY_TOPIC_NAME: latency
+            EMA_TOPIC_NAME: ema
             ADVISORY_TOPIC_NAME: advisory
         volumes:
             - ./data:/data
@@ -125,7 +125,8 @@ services:
     latencylogger:
         image: latency_logger
         environment:
-            TOPIC_NAME: latency
+            EMA_TOPIC_NAME: ema
+            ADVISORY_TOPIC_NAME: advisory
         depends_on:
             kafka-init-topics:
                 condition: service_completed_successfully

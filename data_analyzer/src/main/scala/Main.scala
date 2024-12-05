@@ -27,7 +27,7 @@ object KafkaStreamProcessor extends App {
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  val latencyTopicName = sys.env.getOrElse("LATENCY_TOPIC_NAME", "latency")
+  val emaTopicName = sys.env.getOrElse("EMA_TOPIC_NAME", "ema")
   val readTopicName = sys.env.getOrElse("READ_TOPIC_NAME", "trade-events")
   val advisoryTopicName = sys.env.getOrElse("ADVISORY_TOPIC_NAME", "advisory")
   val kafkaServer = sys.env.getOrElse("KAFKA_SERVER", "kafka:9092")
@@ -61,8 +61,6 @@ object KafkaStreamProcessor extends App {
   props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000")
   props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "1000")
 
-  val smoothingFactorShort = 2.0 / (1 + 38)
-  val smoothingFactorLong = 2.0 / (1 + 100)
   var emaValues = Map[String, EMA]()
 
   val builder = new StreamsBuilder()
@@ -111,33 +109,32 @@ object KafkaStreamProcessor extends App {
         val symbol = windowed.key()
         val lastEventTime = tradeEvent.tradeTime
 
-        val ema = emaValues.getOrElse(symbol, EMA(0.0, 0.0))
-        emaValues += (symbol -> ema
-          .update(
-            tradeEvent.lastPrice,
-            smoothingFactorShort,
-            smoothingFactorLong
-          ))
+        val ema = emaValues.getOrElse(symbol, new EMA())
+        emaValues += (symbol -> ema.update(tradeEvent.lastPrice))
         KeyValue.pair(symbol, ema)
       }
     }
 
   val emaStream: KStream[String, EMA] = tradeEventStream
     .map[String, EMA](emaCalculation)
-    .peek((key, value) => {
-      logger.info(s"Key: $key, EMA: $value")
-    })
+  // .peek((key, value) => {
+  //   logger.info(s"$key -> $value")
+  // })
 
-  // formattedStream
-  // .to(
-  //   latencyTopicName,
-  //   Produced.`with`(Serdes.String(), Serdes.String())
-  // )
+  val emaOutput: KStream[String, String] = emaStream.mapValues(ema => {
+    ema.toString
+  })
+
+  emaOutput.to(
+    emaTopicName,
+    Produced.`with`(Serdes.String(), Serdes.String())
+  )
 
   val advisoryMapper: KeyValueMapper[String, EMA, KeyValue[String, String]] =
     new KeyValueMapper[String, EMA, KeyValue[String, String]] {
-      override def apply(symbol: String, ema: EMA): KeyValue[String, String]= {
-        if (ema.shortEMA > ema.longEMA)  KeyValue.pair(symbol, "BUY") 
+      override def apply(symbol: String, ema: EMA): KeyValue[String, String] = {
+        if (ema.bullishCrossOver) KeyValue.pair(symbol, "BUY")
+        else if (ema.bearishCrossOver) KeyValue.pair(symbol, "SELL")
         else KeyValue.pair(symbol, "-")
       }
     }
@@ -145,9 +142,14 @@ object KafkaStreamProcessor extends App {
   val advisoryStream: KStream[String, String] = emaStream
     .map[String, String](advisoryMapper)
     .filter((_, advisory) => advisory != "-")
-    .peek((key, advisory) => {
-      logger.info(s"ALERT: ${key},${advisory}")
-    })
+
+  advisoryStream.to(
+    advisoryTopicName,
+    Produced.`with`(Serdes.String(), Serdes.String())
+  )
+  // .peek((key, advisory) => {
+  //   logger.info(s"ALERT: ${key},${advisory}")
+  // })
 
   val topology = builder.build()
 
