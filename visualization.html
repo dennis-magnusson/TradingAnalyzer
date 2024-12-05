@@ -145,7 +145,7 @@
                 }
                 receivedData[symbol].push({ time, ema38, ema100 });
 
-                updateLastUpdated(time);
+                updateLastUpdated();
                 updateChart();
             };
 
@@ -223,7 +223,8 @@
                 chart.update();
             }
 
-            function updateLastUpdated(time) {
+            function updateLastUpdated() {
+                const time = new Date();
                 lastUpdated.textContent = time.toLocaleString();
             }
         </script>
