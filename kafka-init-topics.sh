@@ -18,18 +18,19 @@ BOOTSTRAP_SERVER=${BOOTSTRAP_SERVER:-kafka:9092}
     --topic "$TRADE_EVENTS_TOPIC_NAME" \
     --partitions "$TRADE_EVENTS_PARTITIONS" \
     --replication-factor "$TRADE_EVENTS_REPLICATION_FACTOR" \
+    --if-not-exists \
     --bootstrap-server "$BOOTSTRAP_SERVER"
 
 /opt/kafka/bin/kafka-topics.sh --create \
     --topic "$EMA_TOPIC_NAME" \
     --partitions "$EMA_PARTITIONS" \
     --replication-factor "$EMA_REPLICATION_FACTOR" \
+    --if-not-exists \
     --bootstrap-server "$BOOTSTRAP_SERVER"
 
 /opt/kafka/bin/kafka-topics.sh --create \
     --topic "$ADVISORY_TOPIC_NAME" \
     --partitions "$ADVISORY_PARTITIONS" \
     --replication-factor "$ADVISORY_REPLICATION_FACTOR" \
+    --if-not-exists \
     --bootstrap-server "$BOOTSTRAP_SERVER"
-
-# TODO: make script succesfully exit even if the topics are already created
