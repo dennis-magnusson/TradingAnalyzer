@@ -4,7 +4,7 @@ import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
-
+import java.time.LocalDateTime
 import java.io.File
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -24,6 +24,7 @@ object DataGenerator extends App {
     sys.env.getOrElse("PRINT_SENT_RECORDS", "false").toBoolean
   val kafkaServer: String = "kafka:9092"
   val marketOpenTime = "07:00:00.000"
+  val TestState: Boolean = sys.env.getOrElse("TEST_STATE", "false").toBoolean
 
   validateCsvPath(csvPath)
 
@@ -70,6 +71,33 @@ object DataGenerator extends App {
       printSentRecords: Boolean,
       speedFactor: Int
   ): Unit = {
+    if (TestState) {
+      var value: Double = 1.0
+      var shortema: Double = 0.0
+      var longema: Double = 0.0
+      var increasing_factor: Double = 1.0
+    while (true) {
+      val key = "testKey"
+      val timestamp = Instant.now.toEpochMilli
+      val record_value = Seq(key, key, value, timestamp).mkString(",")
+      sendRecordToKafka(producer, topicName, key, record_value)
+      
+      shortema = (0.051282051)*value + (1-0.051282051)*shortema // previous value more important
+      longema = (0.01980198)*value + (1-0.01980198)*longema // new value more important
+      println(s"Sent record with key: <$key>, value: <$record_value>, shortema: <$shortema> longema: <$longema>")
+      // println(s"EMA : $ema")
+      value += increasing_factor
+      if (value > 100) {
+        increasing_factor = -1.0
+      }else if (value < 20) {
+        increasing_factor = 1.0
+      }
+      val sleep_time = (60*1000)/speedFactor
+      Thread.sleep(sleep_time)
+    }
+
+    }
+    else {
     val file = new File(csvPath)
     val reader = CSVReader.open(file)
 
@@ -95,6 +123,7 @@ object DataGenerator extends App {
     }
 
     reader.close()
+    }
   }
 
   def isValidTickRow(values: Seq[String]): Boolean = {

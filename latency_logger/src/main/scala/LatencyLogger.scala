@@ -1,6 +1,6 @@
 import java.util.{Collections, Properties}
 import scala.collection.JavaConversions._
-
+import java.io.{FileWriter, BufferedWriter}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig}
 
@@ -16,22 +16,28 @@ case class Timestamps(
 )
 
 object LatencyLogger extends App {
-  val topicName: String = sys.env.getOrElse("TOPIC_NAME", "timestamps")
-  val pollingInterval: Int = sys.env.getOrElse("POLLING_INTERVAL", "5000").toInt
+  val emaTopicName: String = sys.env.getOrElse("EMA_TOPIC_NAME", "ema")
+  val advisoryTopicName: String =
+    sys.env.getOrElse("ADVISORY_TOPIC_NAME", "advisory")
+  val pollingInterval: Int = sys.env.getOrElse("POLLING_INTERVAL", "500").toInt
   val latencyLogPath: String =
     sys.env.getOrElse("LATENCY_LOG_PATH", "./latency.log")
   val kafkaServer: String = "kafka:9092"
-
-  if (!checkTopicExistence(kafkaServer, topicName)) {
-    println(s"Topic $topicName does not exist")
+  val log_path: String = sys.env.getOrElse("LOG_PATH", "/logs/latency.log")
+  if (!checkTopicExistence(kafkaServer, emaTopicName)) {
+    println(s"Topic $emaTopicName does not exist")
     System.exit(1)
   }
+  // val log_files = new BufferedWriter(new FileWriter(log_path, true))
 
-  val consumer = createKafkaConsumer(topicName)
+  val consumer = createKafkaConsumer(emaTopicName)
+
 
   consumeMessages(consumer, pollingInterval)
 
-  def createKafkaConsumer(topicName: String): KafkaConsumer[String, String] = {
+  def createKafkaConsumer(
+      emaTopicName: String
+  ): KafkaConsumer[String, String] = {
     val props = new Properties()
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServer)
     props.put(
@@ -46,7 +52,7 @@ object LatencyLogger extends App {
     props.put(ConsumerConfig.GROUP_ID_CONFIG, "logger")
 
     val consumer = new KafkaConsumer[String, String](props)
-    consumer.subscribe(Collections.singletonList(topicName))
+    consumer.subscribe(Collections.singletonList(emaTopicName))
     consumer
   }
 
@@ -70,6 +76,23 @@ object LatencyLogger extends App {
   def toEpochMilli(stringTimestamp: String): Long = {
     val isoFormattedTimestamp = stringTimestamp.replace(" ", "T") + "Z"
     java.time.Instant.parse(isoFormattedTimestamp).toEpochMilli
+  }
+
+  // def parseAndPrintLatency(
+  //     record: org.apache.kafka.clients.consumer.ConsumerRecord[String, String]
+  // ): Unit = {
+  //   val recordValues = record.value().split(",")
+  //   val t0: Long = ???
+  //   val t4: Long = java.time.Instant.now.toEpochMilli
+
+  //   val endToEndLatency: Long = ???
+
+  //   // println(...)
+  // }
+  def write_message_to_file(message: String): Unit = {
+    val log_files = new BufferedWriter(new FileWriter(log_path, true))
+    log_files.write(message)
+    log_files.close()
   }
 
   def parseRecord(
@@ -117,12 +140,33 @@ object LatencyLogger extends App {
       consumer: KafkaConsumer[String, String],
       pollingInterval: Int
   ): Unit = {
+    println(s"Polling interval: $pollingInterval ms")
+    write_message_to_file("EMA Calculation Latency,Arrival Latency,Symbol,EMA Values,Human Readable Timestamp\n")
     try {
       while (true) {
         val records =
           consumer.poll(java.time.Duration.ofMillis(pollingInterval))
         for (record <- records.iterator()) {
-          printLatency(parseRecord(record))
+          val recordValues = record.value().split(",")
+          val t0: Long =
+            recordValues(1).toLong // data producer timestamp (trade time)
+          val t1: Long = toEpochMilli(
+            recordValues(2)
+          ) // kafka auto-generated timestamp (trade-events)
+          val t2: Long = toEpochMilli(          printLatency(parseRecord(record))
+
+            recordValues(3)
+          ) // data analyzer timestamp
+          val t3: Long =
+            record.timestamp() // kafka auto-generated timestamp (timestamps)
+          val t4: Long = java.time.Instant.now.toEpochMilli
+
+          val endToEndLatency: Long =
+            t4 - t0
+
+          println(
+            s"end-to-end (t4-t0): ${endToEndLatency}ms, t1-t0: ${t1 - t0}ms, t2-t1: ${t2 - t1}ms, t3-t2: ${t3 - t2}ms, t4-t3: ${t4 - t3}ms"
+          )
         }
       }
     } finally {
@@ -130,5 +174,5 @@ object LatencyLogger extends App {
     }
   }
 
-  println(s"Consuming messages from topic: $topicName")
+  println(s"Consuming messages from topic: $emaTopicName")
 }
