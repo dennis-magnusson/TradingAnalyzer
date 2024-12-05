@@ -1,21 +1,24 @@
 import org.apache.kafka.streams.StreamsBuilder
-import org.apache.kafka.streams.state.WindowStore
+import org.apache.kafka.streams.state.{Stores, WindowStore}
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.utils.Bytes
-import org.apache.kafka.streams.kstream.Windowed
+import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.kstream.{
   KStream,
   Materialized,
   Produced,
   Suppressed,
-  TimeWindows
+  TimeWindows,
+  Windowed,
+  TransformerSupplier
 }
 import java.time.Duration
 
 import Models.{TradeEvent, EMA}
 import Reducers.windowReducer
-import Serializers.TradeEventSerde
-import Mappers.{advisoryMapper, emaMapper}
+import Serializers.{EMASerde, TradeEventSerde}
+import Mappers.advisoryMapper
+import Transformers.EMATransformer
 
 object StreamBuilder {
 
@@ -25,6 +28,17 @@ object StreamBuilder {
       advisoryTopicName: String
   ) = {
     val builder = new StreamsBuilder()
+
+    val storeName = "ema-store"
+
+    val storeSupplier = Stores.keyValueStoreBuilder(
+      Stores.persistentKeyValueStore(storeName),
+      Serdes.String(),
+      new EMASerde()
+    )
+
+    builder.addStateStore(storeSupplier)
+
     val inputStream = builder.stream[String, String](readTopicName)
 
     val parsedStream: KStream[String, TradeEvent] =
@@ -45,7 +59,7 @@ object StreamBuilder {
     val tradeEventStream: KStream[Windowed[String], TradeEvent] =
       parsedStream
         .groupByKey()
-        .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(2)))
+        .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)))
         .reduce(windowReducer, windowMaterialized)
         .suppress(
           Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded())
@@ -53,7 +67,17 @@ object StreamBuilder {
         .toStream()
 
     val emaStream: KStream[String, EMA] =
-      tradeEventStream.map[String, EMA](emaMapper)
+      tradeEventStream
+        .transform(
+          new TransformerSupplier[
+            Windowed[String],
+            TradeEvent,
+            KeyValue[String, EMA]
+          ] {
+            override def get(): EMATransformer = new EMATransformer(storeName)
+          },
+          storeName
+        )
 
     val emaOutput: KStream[String, String] = emaStream.mapValues(ema => {
       ema.toString()

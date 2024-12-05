@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory
 
 import Serializers.{TradeEventSerde, EMASerde}
 import Models.{TradeEvent, EMA}
-import Mappers.{advisoryMapper, emaMapper}
+import Mappers.advisoryMapper
 import Reducers.windowReducer
 
 object KafkaStreamProcessor extends App {

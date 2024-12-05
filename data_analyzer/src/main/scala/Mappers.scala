@@ -1,5 +1,6 @@
 import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.kstream.{KeyValueMapper, Windowed}
+import org.apache.kafka.streams.state.KeyValueStore
 import Models.{TradeEvent, EMA}
 
 object Mappers {
@@ -12,23 +13,4 @@ object Mappers {
         else KeyValue.pair(symbol, "-")
       }
     }
-
-  var emaValues = Map[String, EMA]()
-
-  val emaMapper
-      : KeyValueMapper[Windowed[String], TradeEvent, KeyValue[String, EMA]] =
-    new KeyValueMapper[Windowed[String], TradeEvent, KeyValue[String, EMA]] {
-      override def apply(
-          windowed: Windowed[String],
-          tradeEvent: TradeEvent
-      ): KeyValue[String, EMA] = {
-        val winStart = windowed.window().startTime().toEpochMilli()
-        val winEnd = windowed.window().endTime().toEpochMilli()
-        val symbol = windowed.key()
-        val ema = emaValues.getOrElse(symbol, new EMA())
-        emaValues += (symbol -> ema.update(tradeEvent, winStart, winEnd))
-        KeyValue.pair(symbol, ema)
-      }
-    }
-
 }

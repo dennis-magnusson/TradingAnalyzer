@@ -32,7 +32,6 @@ object LatencyLogger extends App {
 
   val consumer = createKafkaConsumer(emaTopicName)
 
-
   consumeMessages(consumer, pollingInterval)
 
   def createKafkaConsumer(
@@ -141,7 +140,9 @@ object LatencyLogger extends App {
       pollingInterval: Int
   ): Unit = {
     println(s"Polling interval: $pollingInterval ms")
-    write_message_to_file("EMA Calculation Latency,Arrival Latency,Symbol,EMA Values,Human Readable Timestamp\n")
+    write_message_to_file(
+      "EMA Calculation Latency,Arrival Latency,Symbol,EMA Values,Human Readable Timestamp\n"
+    )
     try {
       while (true) {
         val records =
@@ -151,12 +152,18 @@ object LatencyLogger extends App {
           val recordValues = record.value().split(",")
           val emaCalculationLatency =
             recordValues(4).toLong - recordValues(6).toLong
-          val humanReadableTimestamp = java.time.Instant.ofEpochMilli(recordValues(4).toLong).toString
+          val humanReadableTimestamp =
+            java.time.Instant.ofEpochMilli(recordValues(4).toLong).toString
           val arrivalTime = System.currentTimeMillis()
           val arrivalLatency = arrivalTime - recordValues(4).toLong
-          println(s"${emaCalculationLatency}ms (+${arrivalLatency}ms): ${record
-              .key()}, ${record.value()}, humanReadableTimestamp: $humanReadableTimestamp")
-          write_message_to_file(s"${emaCalculationLatency},${arrivalLatency},${record.key()},${record.value()},$humanReadableTimestamp\n")
+          println(
+            s"${emaCalculationLatency}ms (+${arrivalLatency}ms): ${record
+                .key()}, ${record.value()}, humanReadableTimestamp: $humanReadableTimestamp"
+          )
+          write_message_to_file(
+            s"${emaCalculationLatency},${arrivalLatency},${record
+                .key()},${record.value()},$humanReadableTimestamp\n"
+          )
           // os.write.append(log_path, s"${emaCalculationLatency}ms (+${arrivalLatency}ms): ${record.key()}, ${record.value()}, humanReadableTimestamp: $humanReadableTimestamp\n")
         }
       }
