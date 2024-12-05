@@ -99,6 +99,21 @@ services:
         networks:
             - kafka-network
 
+    visualizer:
+        image: visualizer
+        environment:
+            EMA_TOPIC_NAME: ema
+        depends_on:
+            kafka-init-topics:
+                condition: service_completed_successfully
+        build:
+            context: visualizer
+            dockerfile: Dockerfile
+        ports:
+            - "8888:8888"
+        networks:
+            - kafka-network
+
 networks:
     kafka-network:
         driver: bridge
