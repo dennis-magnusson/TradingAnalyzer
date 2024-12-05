@@ -147,26 +147,17 @@ object LatencyLogger extends App {
         val records =
           consumer.poll(java.time.Duration.ofMillis(pollingInterval))
         for (record <- records.iterator()) {
+          // "$latestShortEMA,$previousShortEMA,$latestLongEMA,$previousLongEMA,$lastUpdated,$lastUpdateWindowStart,$lastUpdateWindowEnd"
           val recordValues = record.value().split(",")
-          val t0: Long =
-            recordValues(1).toLong // data producer timestamp (trade time)
-          val t1: Long = toEpochMilli(
-            recordValues(2)
-          ) // kafka auto-generated timestamp (trade-events)
-          val t2: Long = toEpochMilli(          printLatency(parseRecord(record))
-
-            recordValues(3)
-          ) // data analyzer timestamp
-          val t3: Long =
-            record.timestamp() // kafka auto-generated timestamp (timestamps)
-          val t4: Long = java.time.Instant.now.toEpochMilli
-
-          val endToEndLatency: Long =
-            t4 - t0
-
-          println(
-            s"end-to-end (t4-t0): ${endToEndLatency}ms, t1-t0: ${t1 - t0}ms, t2-t1: ${t2 - t1}ms, t3-t2: ${t3 - t2}ms, t4-t3: ${t4 - t3}ms"
-          )
+          val emaCalculationLatency =
+            recordValues(4).toLong - recordValues(6).toLong
+          val humanReadableTimestamp = java.time.Instant.ofEpochMilli(recordValues(4).toLong).toString
+          val arrivalTime = System.currentTimeMillis()
+          val arrivalLatency = arrivalTime - recordValues(4).toLong
+          println(s"${emaCalculationLatency}ms (+${arrivalLatency}ms): ${record
+              .key()}, ${record.value()}, humanReadableTimestamp: $humanReadableTimestamp")
+          write_message_to_file(s"${emaCalculationLatency},${arrivalLatency},${record.key()},${record.value()},$humanReadableTimestamp\n")
+          // os.write.append(log_path, s"${emaCalculationLatency}ms (+${arrivalLatency}ms): ${record.key()}, ${record.value()}, humanReadableTimestamp: $humanReadableTimestamp\n")
         }
       }
     } finally {
