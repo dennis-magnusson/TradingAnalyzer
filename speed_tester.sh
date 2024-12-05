@@ -18,11 +18,10 @@ do
     export LOG_PATH="/logs/latency_$speed.log"
     # Set the SPEED_FACTOR environment variable and run the data generator service
     docker compose up  -d data_producer latencylogger
-    echo "running completed sleeping for 30secs"
-    # echo "Running latency logger with log path: logs/latency_$speed.log"
-    # LOG_PATH="logs/latency_$speed.log" docker compose up -d latency-logger
-    
-    # Optionally, you can add a delay between runs
-    # sleep 5
+    echo "running completed witing for 10m to get some data"
     sleep 10m
+    # Stop the data generator service
+    docker compose down data_producer latencylogger
+    echo "data generator and latencylogger stopped sleeping for 10s to make sure pipelines are empty"
+    sleep 10s
 done
