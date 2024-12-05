@@ -1,0 +1,15 @@
+{
+  "name": "ema-server",
+  "version": "1.0.0",
+  "description": "A lightweight server that consumes EMA values from a Kafka topic and sends them through a WebSocket to a frontend.",
+  "main": "ema_server.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "kafka-node": "^5.0.0",
+    "ws": "^8.0.0"
+  },
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Stock EMA Visualization</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+        <style>
+            body {
+                margin: 20px;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            canvas {
+                max-width: 100%;
+                height: calc(100vh - 180px);
+            }
+            .green {
+                color: green;
+            }
+            .red {
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Visualization (EMA38 & EMA100)</h1>
+        <p>
+            <b><span id="connection_status">Disconnected</span></b
+            >, <b>Last update:</b>
+            <span id="lastupdated">No update received yet</span>
+        </p>
+        <div><canvas id="emaChart"></canvas></div>
+
+        <script>
+            // chart.js
+            const ctx = document.getElementById("emaChart").getContext("2d");
+            const connectionStatus =
+                document.getElementById("connection_status");
+            const lastUpdated = document.getElementById("lastupdated");
+            const chart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    datasets: [],
+                },
+                options: {
+                    animation: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: "time",
+                            time: {
+                                unit: "minute",
+                                displayFormats: {
+                                    minute: "HH:mm",
+                                },
+                            },
+                            ticks: {
+                                maxTicksLimit: 20,
+                                autoSkip: true,
+                            },
+                            title: {
+                                display: true,
+                                text: "Time",
+                            },
+                        },
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: "EMA Value",
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            position: "top",
+                        },
+                    },
+                },
+            });
+
+            // websocket
+            const socket = new WebSocket("ws://localhost:8888");
+
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                const symbol = data.symbol;
+                const time = new Date(parseInt(data.time, 10));
+                const ema38 = data.ema38;
+                const ema100 = data.ema100;
+
+                updateChart(symbol, time, ema38, ema100);
+                updateLastUpdated(time);
+            };
+
+            socket.onopen = function () {
+                connectionStatus.textContent = "Connected";
+                connectionStatus.classList.add("green");
+                connectionStatus.classList.remove("red");
+                console.log("WebSocket connection established");
+            };
+
+            socket.onclose = function () {
+                connectionStatus.classList.add("red");
+                connectionStatus.classList.remove("green");
+                connectionStatus.textContent = "Disconnected";
+                console.log("WebSocket connection closed");
+            };
+
+            socket.onerror = function (error) {
+                connectionStatus.textContent = "Websocket error: " + error;
+                console.error("WebSocket error:", error);
+            };
+
+            function updateChart(symbol, time, ema38, ema100) {
+                let datasetEMA38 = chart.data.datasets.find(
+                    (ds) => ds.label === `${symbol} EMA38`
+                );
+                if (!datasetEMA38) {
+                    datasetEMA38 = {
+                        label: `${symbol} EMA38`,
+                        borderColor: getRandomColor(),
+                        backgroundColor: "rgba(75, 192, 192, 0.2)",
+                        data: [],
+                    };
+                    chart.data.datasets.push(datasetEMA38);
+                }
+
+                let datasetEMA100 = chart.data.datasets.find(
+                    (ds) => ds.label === `${symbol} EMA100`
+                );
+                if (!datasetEMA100) {
+                    datasetEMA100 = {
+                        label: `${symbol} EMA100`,
+                        borderColor: getRandomColor(),
+                        backgroundColor: "rgba(153, 102, 255, 0.2)",
+                        data: [],
+                    };
+                    chart.data.datasets.push(datasetEMA100);
+                }
+                datasetEMA38.data.push({ x: time, y: ema38 });
+                datasetEMA100.data.push({ x: time, y: ema100 });
+                chart.update();
+            }
+
+            function updateLastUpdated(time) {
+                lastUpdated.textContent = time.toLocaleString();
+            }
+
+            function getRandomColor() {
+                return `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
+            }
+        </script>
+    </body>
+</html>

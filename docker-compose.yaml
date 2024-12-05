@@ -57,7 +57,7 @@ services:
             context: data_producer
             dockerfile: Dockerfile
         environment:
-            SPEED_FACTOR: 1
+            SPEED_FACTOR: 2
             CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
             PRINT_SENT_RECORDS: true
             TEST_STATE: false
@@ -135,6 +135,21 @@ services:
             dockerfile: Dockerfile
         volumes:
             - ./logs:/logs
+        networks:
+            - kafka-network
+
+    visualizer:
+        image: visualizer
+        environment:
+            EMA_TOPIC_NAME: ema
+        depends_on:
+            kafka-init-topics:
+                condition: service_completed_successfully
+        build:
+            context: visualizer
+            dockerfile: Dockerfile
+        ports:
+            - "8888:8888"
         networks:
             - kafka-network
 
