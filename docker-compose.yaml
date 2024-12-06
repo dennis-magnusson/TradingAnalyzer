@@ -61,6 +61,7 @@ services:
             CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
             PRINT_SENT_RECORDS: true
             TEST_STATE: $TEST_STATE
+            STATIC_TIME: $STATIC_TIME
         volumes:
             - ./data:/data
         networks:
