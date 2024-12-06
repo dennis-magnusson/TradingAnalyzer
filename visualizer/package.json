@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "A lightweight server that consumes EMA values from a Kafka topic and sends them through a WebSocket to a frontend.",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "build_frontend": "webpack"
   },
   "dependencies": {
-    "kafka-node": "^5.0.0",
+    "kafkajs": "^2.2.4",
     "ws": "^8.0.0",
     "express": "^4.21.2",
     "chart.js": "^4.4.7",

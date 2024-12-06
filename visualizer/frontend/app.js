@@ -9,7 +9,7 @@ const checkboxContainer = document.getElementById("checkbox-container");
 const alertContainer = document.getElementById("alert-container");
 
 const receivedData = {};
-const receivedAlerts = [];
+// const latestAlerts = [];
 const selectedSymbols = new Set();
 
 const EMA100GraphColor = "rgba(192, 0, 0, 1)";
@@ -78,14 +78,12 @@ socket.onmessage = function (event) {
         updateLastUpdated();
         updateChart();
     } else if (data.topic == "advisory") {
-        if (!receivedAlerts[data.symbol]) {
-            receivedAlerts[data.symbol] = [];
-        }
-        const alert = `${data.timestamp} - ${data.symbol}: ${data.advisory}`;
-
-        receivedAlerts.push(alert);
-        console.log("Received alert:", alert);
-        updateAlerts();
+        const alert = `${new Date(parseInt(data.timestamp))} - ${
+            data.symbol
+        }: ${data.advisory}`;
+        console.log(alert);
+        // latestAlerts.push(alert);
+        // updateAlerts();
     }
 };
 
@@ -130,14 +128,15 @@ function createCheckbox(symbol) {
     selectedSymbols.add(symbol);
 }
 
-function updateAlerts() {
-    alertContainer.innerHTML = "<h3>Signal alerts</h3>";
-    receivedAlerts.forEach((alert) => {
-        const alertElement = document.createElement("p");
-        alertElement.textContent = alert;
-        alertContainer.appendChild(alertElement);
-    });
-}
+// TODO: Render latest alerts in some optimal way (e.g. a scrolling list), that doesn't overwhelm the browser
+// function updateAlerts() {
+//     alertContainer.innerHTML = "";
+//     latestAlerts.forEach((alert) => {
+//         const alertElement = document.createElement("p");
+//         alertElement.textContent = alert;
+//         alertContainer.appendChild(alertElement);
+//     });
+// }
 
 function updateChart() {
     const datasets = [];

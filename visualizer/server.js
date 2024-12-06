@@ -1,7 +1,11 @@
-const WebSocket = require("ws");
-const kafka = require("kafka-node");
-const express = require("express");
-const path = require("path");
+import express from "express";
+import { Kafka } from "kafkajs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { WebSocketServer } from "ws";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const port = 8888;
 const app = express();
@@ -9,69 +13,70 @@ const app = express();
 app.use(express.static(path.join(__dirname, "public")));
 
 // Kafka Consumer
-const Consumer = kafka.Consumer;
-const client = new kafka.KafkaClient({ kafkaHost: "kafka:9092" });
-const consumerEma = new Consumer(client, [{ topic: "ema", partition: 0 }], {
-    autoCommit: true,
+const kafka = new Kafka({ clientId: "visualizer", brokers: ["kafka:9092"] });
+const consumerEma = kafka.consumer({ groupId: "visualizer-ema-grp" });
+const consumerAdvisory = kafka.consumer({ groupId: "visualizer-advisory-grp" });
+
+await consumerEma.connect();
+await consumerAdvisory.connect();
+
+await consumerEma.subscribe({ topic: "ema", fromBeginning: true });
+await consumerAdvisory.subscribe({
+    topic: "advisory",
+    fromBeginning: true,
 });
-const consumerAdvisory = new Consumer(
-    client,
-    [{ topic: "advisory", partition: 0 }],
-    {
-        autoCommit: true,
-    }
-);
 
 // WebSocket Server
 const server = app.listen(port, () => {
     console.log(`Server started on http://localhost:${port}`);
 });
 
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ server });
+
+const startConsumers = () => {
+    consumerEma.run({
+        eachMessage: async ({ message }) => {
+            const key = message.key.toString();
+            const value = message.value.toString().split(",");
+
+            const data = {
+                topic: "ema",
+                symbol: key,
+                ema38: value[0],
+                ema100: value[2],
+            };
+
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(data));
+                }
+            });
+        },
+    });
+
+    consumerAdvisory.run({
+        eachMessage: async ({ message }) => {
+            const key = message.key.toString();
+            const value = message.value.toString();
+
+            const data = {
+                topic: "advisory",
+                symbol: key,
+                advisory: value,
+                timestamp: message.timestamp,
+            };
+
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(data));
+                }
+            });
+        },
+    });
+};
+
+startConsumers();
 
 wss.on("connection", (ws) => {
     console.log("WebSocket client connected");
-
-    consumerEma.on("message", (message) => {
-        const key = message.key;
-        const value = message.value.split(",");
-
-        const data = {
-            topic: "ema",
-            symbol: key,
-            time: value[6],
-            ema38: parseFloat(value[0]),
-            ema100: parseFloat(value[2]),
-        };
-
-        console.log(data);
-
-        ws.send(JSON.stringify(data));
-    });
-
-    consumerAdvisory.on("message", (message) => {
-        const key = message.key;
-        const value = message.value;
-
-        const data = {
-            topic: "advisory",
-            symbol: key,
-            advisory: value,
-            timestamp: message.timestamp,
-        };
-
-        ws.send(JSON.stringify(data));
-    });
-
-    ws.on("close", () => {
-        console.log("WebSocket client disconnected");
-    });
-});
-
-consumerEma.on("error", (err) => {
-    console.error("Kafka ema consumer error:", err);
-});
-
-consumerAdvisory.on("error", (err) => {
-    console.error("Kafka advisory consumer error:", err);
 });

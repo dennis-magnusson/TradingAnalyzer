@@ -35,19 +35,25 @@
             #left-container {
                 display: flex;
                 flex-direction: column;
-                width: 260px;
+                justify-self: start;
+                width: 280px;
                 border-right: 1px solid #bbb;
                 overflow: hidden;
             }
-            #checkbox-container {
-                border-bottom: 1px solid #bbb;
-                overflow: scroll;
-                flex: 1;
+            .padded {
                 padding: 0 15px;
             }
-            #alert-container {
+            #checkbox-parent-container {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: auto;
+            }
+            #checkbox-parent-container {
+                border-bottom: 1px solid #bbb;
+            }
+            #checkbox-container {
                 overflow: scroll;
-                height: 200px;
                 flex: 1;
                 padding: 0 15px;
             }
@@ -75,13 +81,18 @@
             </div>
             <div id="charting-container">
                 <div id="left-container">
-                    <div id="checkbox-container">
-                        <h3>Select symbols</h3>
+                    <div id="checkbox-parent-container">
+                        <h3 class="padded">Select symbols</h3>
+                        <div id="checkbox-container"></div>
                     </div>
-
-                    <div id="alert-container">
-                        <h3>Signal alerts</h3>
-                        <p>No signals detected yet</p>
+                    <div id="alert-parent-container">
+                        <p class="padded">
+                            View browser console for buy and sell alerts
+                        </p>
+                        <!-- <h3 class="padded">Signal alerts</h3>
+                        <div id="alert-container">
+                            <p>No signals detected yet</p>
+                        </div> -->
                     </div>
                 </div>
                 <div id="canvas-container">
