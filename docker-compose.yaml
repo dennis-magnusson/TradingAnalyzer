@@ -60,7 +60,7 @@ services:
             SPEED_FACTOR: $SPEED_FACTOR
             CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
             PRINT_SENT_RECORDS: true
-            TEST_STATE: true
+            TEST_STATE: $TEST_STATE
         volumes:
             - ./data:/data
         networks:
