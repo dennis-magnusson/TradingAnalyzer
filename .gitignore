@@ -19,3 +19,7 @@ old_scripts
 logs
 *.csv
 .env
+
+/test/produceenv
+*.png
+/test/alerts.txt
