@@ -1,4 +1,4 @@
-FROM node:14
+FROM node:lts-slim
 
 WORKDIR /usr/src/app
 
@@ -8,6 +8,8 @@ RUN npm install
 
 COPY . .
 
+RUN npm run build_frontend
+
 EXPOSE 8888
 
-CMD ["node", "app.js"]
+CMD ["node", "server.js"]
