@@ -113,17 +113,23 @@ services:
     depends_on:
         broker-1:
             condition: service_healthy
+        broker-2:
+            condition: service_healthy
+        broker-3:
+            condition: service_healthy
     environment:
         BOOTSTRAP_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
         TRADE_EVENTS_TOPIC_NAME: trade-events
         TRADE_EVENTS_PARTITIONS: 5
         TRADE_EVENTS_REPLICATION_FACTOR: 2
+
         EMA_TOPIC_NAME: ema
         EMA_PARTITIONS: 2
         EMA_REPLICATION_FACTOR: 2
         ADVISORY_TOPIC_NAME: advisory
         ADVISORY_PARTITIONS: 3
         ADVISORY_REPLICATION_FACTOR: 2
+
     volumes:
         - ./kafka-init-topics.sh:/kafka-init-topics.sh
     entrypoint: ["/bin/sh", "-c"]
@@ -141,7 +147,7 @@ services:
         SPEED_FACTOR: $SPEED_FACTOR
         CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
         PRINT_SENT_RECORDS: true
-        TEST_STATE: true
+        TEST_STATE: false
         KAFKA_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
     volumes:
         - ./data:/data
@@ -159,7 +165,7 @@ services:
         EMA_TOPIC_NAME: ema
         ADVISORY_TOPIC_NAME: advisory
         KAFKA_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
-        
+
   data_analyzer-2:
     image: data_analyzer
     depends_on:
@@ -189,7 +195,6 @@ services:
         dockerfile: Dockerfile
     volumes:
         - ./logs:/logs
-
 
   visualizer:
     image: visualizer
