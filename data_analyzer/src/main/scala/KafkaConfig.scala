@@ -23,10 +23,6 @@ object KafkaConfig {
     props.put(StreamsConfig.TOPIC_PREFIX + "retention.ms", "172800000")
     props.put(StreamsConfig.REPLICATION_FACTOR_CONFIG, "1")
 
-    props.put(
-      ConsumerConfig.GROUP_INSTANCE_ID_CONFIG,
-      "data-analyzer-group-inst-id"
-    )
     props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000")
     props.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "1000")
     props
