@@ -9,15 +9,19 @@ Low-latency platform for real-time trading analysis.
     - docker and docker compose
 
 1. Download the dataset
+   
    `./download_dataset.sh`
 
-2. Create a `.env`file based on the `.env.template` and modify values if needed
+3. Create a `.env` file based on the `.env.template` and modify values if needed
+   
    `cp .env.template .env`
 
-3. Build the containers
-  `docker compose build`
+5. Build the containers
+
+   `docker compose build`
  
-5. Run the containers
+7. Run the containers
+   
    `docker compose up -d`
 
 ## Consuming buy and sell alerts
