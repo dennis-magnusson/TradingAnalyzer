@@ -14,7 +14,10 @@ Low-latency platform for real-time trading analysis.
 2. Create a `.env`file based on the `.env.template` and modify values if needed
    `cp .env.template .env`
 
-3. Run the containers
+3. Build the containers
+  `docker compose build`
+ 
+5. Run the containers
    `docker compose up -d`
 
 ## Consuming buy and sell alerts
