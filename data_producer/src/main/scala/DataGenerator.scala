@@ -25,7 +25,8 @@ object DataGenerator extends App {
   val kafkaServer: String = sys.env.getOrElse("KAFKA_SERVER", "kafka:9092")
   val marketOpenTime = "07:00:00.000"
   val TestState: Boolean = sys.env.getOrElse("TEST_STATE", "false").toBoolean
-
+  val staticTime: Boolean = sys.env.getOrElse("STATIC_TIME", "false").toBoolean
+  val sleep_time: Int = (60*1000)/speedFactor // number of mili seconds to sleep between static data sends
   validateCsvPath(csvPath)
 
   val producer = createKafkaProducer(kafkaServer)
@@ -92,7 +93,7 @@ object DataGenerator extends App {
       }else if (value < 20) {
         increasing_factor = 1.0
       }
-      val sleep_time = (60*1000)/speedFactor
+      // val sleep_time = (60*1000)/speedFactor
       Thread.sleep(sleep_time)
     }
 
@@ -118,7 +119,11 @@ object DataGenerator extends App {
         if (printSentRecords) {
           println(s"Sent record with key: <$key>, value: <$value>")
         }
-        Thread.sleep(intervalMs / speedFactor)
+        if (staticTime == false) {
+          Thread.sleep(intervalMs / speedFactor)
+        } else {
+          Thread.sleep(sleep_time)
+        }
       }
     }
 
