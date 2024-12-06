@@ -1,15 +1,26 @@
 const WebSocket = require("ws");
 const kafka = require("kafka-node");
+const express = require("express");
+const path = require("path");
 
-// Kafka Consumer setup
+const port = 8888;
+const app = express();
+
+app.use(express.static(path.join(__dirname, "public")));
+
+// Kafka Consumer
 const Consumer = kafka.Consumer;
 const client = new kafka.KafkaClient({ kafkaHost: "kafka:9092" });
 const consumer = new Consumer(client, [{ topic: "ema", partition: 0 }], {
     autoCommit: true,
 });
 
-// WebSocket Server setup
-const wss = new WebSocket.Server({ port: 8888 });
+// WebSocket Server
+const server = app.listen(port, () => {
+    console.log(`Server started on http://localhost:${port}`);
+});
+
+const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
     console.log("WebSocket client connected");
@@ -36,5 +47,3 @@ wss.on("connection", (ws) => {
 consumer.on("error", (err) => {
     console.error("Kafka consumer error:", err);
 });
-
-console.log("WebSocket server is running on ws://localhost:8888");
