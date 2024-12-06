@@ -22,7 +22,7 @@ object LatencyLogger extends App {
   val pollingInterval: Int = sys.env.getOrElse("POLLING_INTERVAL", "500").toInt
   val latencyLogPath: String =
     sys.env.getOrElse("LATENCY_LOG_PATH", "./latency.log")
-  val kafkaServer: String = "kafka:9092"
+  val kafkaServer: String = sys.env.getOrElse("KAFKA_SERVER", "kafka:9092")
   val log_path: String = sys.env.getOrElse("LOG_PATH", "/logs/latency.log")
   if (!checkTopicExistence(kafkaServer, emaTopicName)) {
     println(s"Topic $emaTopicName does not exist")

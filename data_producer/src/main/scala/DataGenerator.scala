@@ -22,7 +22,7 @@ object DataGenerator extends App {
     sys.env.getOrElse("TOPIC_REPLICATION_FACTOR", "1").toShort
   val printSentRecords: Boolean =
     sys.env.getOrElse("PRINT_SENT_RECORDS", "false").toBoolean
-  val kafkaServer: String = "kafka:9092"
+  val kafkaServer: String = sys.env.getOrElse("KAFKA_SERVER", "kafka:9092")
   val marketOpenTime = "07:00:00.000"
   val TestState: Boolean = sys.env.getOrElse("TEST_STATE", "false").toBoolean
 
