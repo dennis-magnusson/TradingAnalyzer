@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Stock EMA Visualization</title>
+        <title>TradingAnalyzer</title>
         <style>
             body {
                 font-family: sans-serif;
@@ -12,7 +12,7 @@
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                padding: 15px;
+                padding: 0;
             }
             #app-container {
                 width: 100%;
@@ -22,46 +22,67 @@
                 flex-direction: row;
                 justify-content: space-between;
                 align-items: center;
-                border-bottom: 1px solid #ddd;
+                border-bottom: 1px solid #bbb;
+                padding: 0 15px;
+                height: 100px;
             }
             #charting-container {
                 display: flex;
                 flex-direction: row;
-                height: calc(100vh - 120px);
+                height: calc(100vh - 102px);
                 gap: 10px;
             }
-            #checkbox-container {
+            #left-container {
                 display: flex;
                 flex-direction: column;
-                width: 200px;
-                border-right: 1px solid #ddd;
+                width: 260px;
+                border-right: 1px solid #bbb;
+                overflow: hidden;
+            }
+            #checkbox-container {
+                border-bottom: 1px solid #bbb;
                 overflow: scroll;
+                flex: 1;
+                padding: 0 15px;
+            }
+            #alert-container {
+                overflow: scroll;
+                height: 200px;
+                flex: 1;
+                padding: 0 15px;
             }
             #canvas-container {
                 width: 100%;
                 height: 100%;
             }
             .green {
-                color: green;
+                color: #22a74e;
             }
             .red {
-                color: red;
+                color: #d32f2f;
             }
         </style>
     </head>
     <body>
         <div id="app-container">
             <div id="header-container">
-                <h1>Visualization (EMA38 & EMA100)</h1>
+                <h1>TradingAnalyzer</h1>
                 <p>
                     <b><span id="connection_status">Disconnected</span></b
                     >, <b>Last update:</b>
-                    <span id="lastupdated">No update received yet</span>
+                    <span id="lastupdated">Waiting for first update</span>
                 </p>
             </div>
             <div id="charting-container">
-                <div id="checkbox-container">
-                    <h3>Select symbols</h3>
+                <div id="left-container">
+                    <div id="checkbox-container">
+                        <h3>Select symbols</h3>
+                    </div>
+
+                    <div id="alert-container">
+                        <h3>Signal alerts</h3>
+                        <p>No signals detected yet</p>
+                    </div>
                 </div>
                 <div id="canvas-container">
                     <canvas id="ema-chart"></canvas>

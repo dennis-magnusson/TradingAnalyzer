@@ -6,8 +6,10 @@ const ctx = document.getElementById("ema-chart").getContext("2d");
 const connectionStatus = document.getElementById("connection_status");
 const lastUpdated = document.getElementById("lastupdated");
 const checkboxContainer = document.getElementById("checkbox-container");
+const alertContainer = document.getElementById("alert-container");
 
 const receivedData = {};
+const receivedAlerts = [];
 const selectedSymbols = new Set();
 
 const EMA100GraphColor = "rgba(192, 0, 0, 1)";
@@ -60,19 +62,31 @@ const socket = new WebSocket("ws://localhost:8888");
 
 socket.onmessage = function (event) {
     const data = JSON.parse(event.data);
-    const symbol = data.symbol;
-    const time = new Date(parseInt(data.time, 10));
-    const ema38 = data.ema38;
-    const ema100 = data.ema100;
 
-    if (!receivedData[symbol]) {
-        receivedData[symbol] = [];
-        createCheckbox(symbol);
+    if (data.topic == "ema") {
+        const symbol = data.symbol;
+        const time = new Date(parseInt(data.time, 10));
+        const ema38 = data.ema38;
+        const ema100 = data.ema100;
+
+        if (!receivedData[symbol]) {
+            receivedData[symbol] = [];
+            createCheckbox(symbol);
+        }
+        receivedData[symbol].push({ time, ema38, ema100 });
+
+        updateLastUpdated();
+        updateChart();
+    } else if (data.topic == "advisory") {
+        if (!receivedAlerts[data.symbol]) {
+            receivedAlerts[data.symbol] = [];
+        }
+        const alert = `${data.timestamp} - ${data.symbol}: ${data.advisory}`;
+
+        receivedAlerts.push(alert);
+        console.log("Received alert:", alert);
+        updateAlerts();
     }
-    receivedData[symbol].push({ time, ema38, ema100 });
-
-    updateLastUpdated();
-    updateChart();
 };
 
 socket.onopen = function () {
@@ -114,6 +128,15 @@ function createCheckbox(symbol) {
     checkboxContainer.appendChild(container);
 
     selectedSymbols.add(symbol);
+}
+
+function updateAlerts() {
+    alertContainer.innerHTML = "<h3>Signal alerts</h3>";
+    receivedAlerts.forEach((alert) => {
+        const alertElement = document.createElement("p");
+        alertElement.textContent = alert;
+        alertContainer.appendChild(alertElement);
+    });
 }
 
 function updateChart() {
