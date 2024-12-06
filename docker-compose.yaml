@@ -78,6 +78,8 @@ services:
             READ_TOPIC_NAME: trade-events
             EMA_TOPIC_NAME: ema
             ADVISORY_TOPIC_NAME: advisory
+            WINDOW_TIME: 5
+            GRACE_TIME: 1
         networks:
             - kafka-network
 

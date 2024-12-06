@@ -14,11 +14,14 @@ object KafkaStreamProcessor extends App {
   val readTopicName = sys.env.getOrElse("READ_TOPIC_NAME", "trade-events")
   val advisoryTopicName = sys.env.getOrElse("ADVISORY_TOPIC_NAME", "advisory")
   val kafkaServer = sys.env.getOrElse("KAFKA_SERVER", "kafka:9092")
-
+  val windowTime = sys.env.getOrElse("WINDOW_TIME", "5").toInt // minutes for windowing operation
+  val graceTime = sys.env.getOrElse("GRACE_TIME", "1").toInt // seconds to wait for late events
   val topology = StreamBuilder.buildTopology(
     readTopicName,
     emaTopicName,
-    advisoryTopicName
+    advisoryTopicName, 
+    windowTime,
+    graceTime
   )
 
   println(topology.describe())

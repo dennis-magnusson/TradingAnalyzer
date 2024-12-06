@@ -25,7 +25,9 @@ object StreamBuilder {
   def buildTopology(
       readTopicName: String,
       emaTopicName: String,
-      advisoryTopicName: String
+      advisoryTopicName: String,
+      windowtime: Int,
+      graceTime: Int
   ) = {
     val builder = new StreamsBuilder()
 
@@ -59,7 +61,7 @@ object StreamBuilder {
     val tradeEventStream: KStream[Windowed[String], TradeEvent] =
       parsedStream
         .groupByKey()
-        .windowedBy(TimeWindows.ofSizeAndGrace(Duration.ofMinutes(5), Duration.ofSecond(1)))
+        .windowedBy(TimeWindows.ofSizeAndGrace(Duration.ofMinutes(windowtime), Duration.ofSeconds(graceTime)))
         .reduce(windowReducer, windowMaterialized)
         .suppress(
           Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded())
