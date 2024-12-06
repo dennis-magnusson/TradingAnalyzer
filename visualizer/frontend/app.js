@@ -65,7 +65,7 @@ socket.onmessage = function (event) {
 
     if (data.topic == "ema") {
         const symbol = data.symbol;
-        const time = new Date(parseInt(data.time, 10));
+        const time = new Date(data.time);
         const ema38 = data.ema38;
         const ema100 = data.ema100;
 
@@ -78,9 +78,9 @@ socket.onmessage = function (event) {
         updateLastUpdated();
         updateChart();
     } else if (data.topic == "advisory") {
-        const alert = `${new Date(parseInt(data.timestamp))} - ${
-            data.symbol
-        }: ${data.advisory}`;
+        const alert = `Time: ${new Date(
+            data.timestamp
+        ).toLocaleTimeString()} - ${data.symbol}: ${data.advisory}`;
         console.log(alert);
         // latestAlerts.push(alert);
         // updateAlerts();

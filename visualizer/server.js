@@ -42,8 +42,9 @@ const startConsumers = () => {
             const data = {
                 topic: "ema",
                 symbol: key,
-                ema38: value[0],
-                ema100: value[2],
+                ema38: parseFloat(value[0]),
+                ema100: parseFloat(value[2]),
+                time: parseInt(value[6]),
             };
 
             wss.clients.forEach((client) => {
@@ -63,7 +64,7 @@ const startConsumers = () => {
                 topic: "advisory",
                 symbol: key,
                 advisory: value,
-                timestamp: message.timestamp,
+                timestamp: parseInt(message.timestamp),
             };
 
             wss.clients.forEach((client) => {
