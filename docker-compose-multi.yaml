@@ -116,13 +116,13 @@ services:
     environment:
         BOOTSTRAP_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
         TRADE_EVENTS_TOPIC_NAME: trade-events
-        TRADE_EVENTS_PARTITIONS: 2
+        TRADE_EVENTS_PARTITIONS: 5
         TRADE_EVENTS_REPLICATION_FACTOR: 2
         EMA_TOPIC_NAME: ema
         EMA_PARTITIONS: 2
         EMA_REPLICATION_FACTOR: 2
         ADVISORY_TOPIC_NAME: advisory
-        ADVISORY_PARTITIONS: 2
+        ADVISORY_PARTITIONS: 3
         ADVISORY_REPLICATION_FACTOR: 2
     volumes:
         - ./kafka-init-topics.sh:/kafka-init-topics.sh
@@ -146,7 +146,7 @@ services:
     volumes:
         - ./data:/data
 
-  data_analyzer:
+  data_analyzer-1:
     image: data_analyzer
     depends_on:
         kafka-init-topics:
@@ -159,9 +159,20 @@ services:
         EMA_TOPIC_NAME: ema
         ADVISORY_TOPIC_NAME: advisory
         KAFKA_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
-    volumes:
-        - ./data:/data
-
+        
+  data_analyzer-2:
+    image: data_analyzer
+    depends_on:
+        kafka-init-topics:
+            condition: service_completed_successfully
+    build:
+        context: data_analyzer
+        dockerfile: Dockerfile
+    environment:
+        READ_TOPIC_NAME: trade-events
+        EMA_TOPIC_NAME: ema
+        ADVISORY_TOPIC_NAME: advisory
+        KAFKA_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
 
   latencylogger:
     image: latency_logger

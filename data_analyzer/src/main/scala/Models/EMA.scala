@@ -34,11 +34,11 @@ class EMA() {
   }
 
   def bullishCrossOver(): Boolean = {
-    previousShortEMA < previousLongEMA && latestShortEMA > latestLongEMA
+    previousShortEMA <= previousLongEMA && latestShortEMA > latestLongEMA
   }
 
   def bearishCrossOver(): Boolean = {
-    previousShortEMA > previousLongEMA && latestShortEMA < latestLongEMA
+    previousShortEMA >= previousLongEMA && latestShortEMA < latestLongEMA
   }
 
   override def toString(): String = {
