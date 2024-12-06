@@ -59,7 +59,7 @@ object StreamBuilder {
     val tradeEventStream: KStream[Windowed[String], TradeEvent] =
       parsedStream
         .groupByKey()
-        .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(5)))
+        .windowedBy(TimeWindows.ofSizeAndGrace(Duration.ofMinutes(5), Duration.ofSecond(1)))
         .reduce(windowReducer, windowMaterialized)
         .suppress(
           Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded())
