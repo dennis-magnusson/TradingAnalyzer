@@ -54,7 +54,11 @@ services:
       - controller-1
       - controller-2
       - controller-3
-
+    healthcheck:
+      test: /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1
+      interval: 2s
+      start_interval: 2s
+      retries: 10
   broker-2:
     image: apache/kafka:3.8.1
     container_name: broker-2
@@ -74,7 +78,11 @@ services:
       - controller-1
       - controller-2
       - controller-3
-
+    healthcheck:
+      test: /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1
+      interval: 2s
+      start_interval: 2s
+      retries: 10
   broker-3:
     image: apache/kafka:3.8.1
     container_name: broker-3
@@ -94,3 +102,93 @@ services:
       - controller-1
       - controller-2
       - controller-3
+    healthcheck:
+      test: /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1
+      interval: 2s
+      start_interval: 2s
+      retries: 10
+
+  kafka-init-topics:
+    image: apache/kafka:3.8.1
+    depends_on:
+        broker-1:
+            condition: service_healthy
+    environment:
+        BOOTSTRAP_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
+        TRADE_EVENTS_TOPIC_NAME: trade-events
+        TRADE_EVENTS_PARTITIONS: 2
+        TRADE_EVENTS_REPLICATION_FACTOR: 2
+        EMA_TOPIC_NAME: ema
+        EMA_PARTITIONS: 2
+        EMA_REPLICATION_FACTOR: 2
+        ADVISORY_TOPIC_NAME: advisory
+        ADVISORY_PARTITIONS: 2
+        ADVISORY_REPLICATION_FACTOR: 2
+    volumes:
+        - ./kafka-init-topics.sh:/kafka-init-topics.sh
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+        /kafka-init-topics.sh
+  data_producer:
+    image: data_producer
+    depends_on:
+        kafka-init-topics:
+            condition: service_completed_successfully
+    build:
+        context: data_producer
+        dockerfile: Dockerfile
+    environment:
+        SPEED_FACTOR: $SPEED_FACTOR
+        CSV_PATH: /data/debs2022-gc-trading-day-12-11-21.csv
+        PRINT_SENT_RECORDS: true
+        TEST_STATE: true
+        KAFKA_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
+    volumes:
+        - ./data:/data
+
+  data_analyzer:
+    image: data_analyzer
+    depends_on:
+        kafka-init-topics:
+            condition: service_completed_successfully
+    build:
+        context: data_analyzer
+        dockerfile: Dockerfile
+    environment:
+        READ_TOPIC_NAME: trade-events
+        EMA_TOPIC_NAME: ema
+        ADVISORY_TOPIC_NAME: advisory
+        KAFKA_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
+    volumes:
+        - ./data:/data
+
+
+  latencylogger:
+    image: latency_logger
+    environment:
+        EMA_TOPIC_NAME: ema
+        ADVISORY_TOPIC_NAME: advisory
+        LOG_PATH: $LOG_PATH
+        KAFKA_SERVER: broker-1:19092,broker-2:19092,broker-3:19092
+    depends_on:
+        kafka-init-topics:
+            condition: service_completed_successfully
+    build:
+        context: latency_logger
+        dockerfile: Dockerfile
+    volumes:
+        - ./logs:/logs
+
+
+  visualizer:
+    image: visualizer
+    environment:
+        EMA_TOPIC_NAME: ema
+    depends_on:
+        kafka-init-topics:
+            condition: service_completed_successfully
+    build:
+        context: visualizer
+        dockerfile: Dockerfile
+    ports:
+        - "8888:8888"
